@@ -1,6 +1,474 @@
 ﻿/**
  * Frontend JavaScript pour le Test DISC
- * A COMPLETER : Copiez le contenu de l'artifact "DISC Test - Frontend JavaScript"
+ * Gère toute l'interactivité du test
  */
 
-// TODO: Copier le JavaScript depuis l'artifact
+(function($) {
+    'use strict';
+    
+    // Variables globales pour le test
+    let sessionToken = null;
+    let currentQuestionIndex = 0;
+    let responses = [];
+    let questionStartTime = null;
+    let testStartTime = null;
+    
+    /**
+     * Initialisation au chargement du DOM
+     */
+    $(document).ready(function() {
+        initDISCTest();
+    });
+    
+    /**
+     * Initialise le test DISC
+     */
+    function initDISCTest() {
+        const $container = $('.disc-test-container');
+        
+        if (!$container.length) {
+            return;
+        }
+        
+        // Génère un token de session unique
+        sessionToken = generateSessionToken();
+        
+        // Bouton de démarrage
+        $('.disc-btn-start').on('click', function() {
+            startTest();
+        });
+        
+        // Boutons de navigation
+        $('.disc-btn-next').on('click', function() {
+            handleNextQuestion();
+        });
+        
+        $('.disc-btn-prev').on('click', function() {
+            handlePreviousQuestion();
+        });
+        
+        // Gestion des choix radio
+        $('input[type="radio"]').on('change', function() {
+            handleRadioChange($(this));
+        });
+        
+        // Soumission du formulaire de contact
+        $('#disc-contact-form').on('submit', function(e) {
+            e.preventDefault();
+            submitContactForm();
+        });
+        
+        // Validation email en temps réel
+        $('#disc-email').on('blur', function() {
+            validateEmail($(this).val());
+        });
+        
+        // Partage LinkedIn
+        $('.disc-btn-share-linkedin').on('click', function() {
+            shareOnLinkedIn();
+        });
+    }
+    
+    /**
+     * Démarre le test
+     */
+    function startTest() {
+        testStartTime = Date.now();
+        questionStartTime = Date.now();
+        
+        showScreen('questions');
+        
+        // Log l'événement de démarrage
+        $.post(discTest.ajaxUrl, {
+            action: 'disc_submit_response',
+            nonce: discTest.nonce,
+            session_token: sessionToken,
+            event: 'test_started'
+        });
+    }
+    
+    /**
+     * Gère le changement de sélection radio
+     */
+    function handleRadioChange($radio) {
+        const $question = $radio.closest('.disc-question');
+        const questionId = $question.data('question-id');
+        const name = $radio.attr('name');
+        
+        // Empêche de sélectionner la même dimension pour "le plus" et "le moins"
+        if (name.includes('most_like')) {
+            const dimension = $radio.val();
+            $question.find('input[name^="least_like"][value="' + dimension + '"]').prop('disabled', true);
+            $question.find('input[name^="least_like"]').not('[value="' + dimension + '"]').prop('disabled', false);
+        } else {
+            const dimension = $radio.val();
+            $question.find('input[name^="most_like"][value="' + dimension + '"]').prop('disabled', true);
+            $question.find('input[name^="most_like"]').not('[value="' + dimension + '"]').prop('disabled', false);
+        }
+        
+        // Cache l'erreur si elle était affichée
+        $question.find('.disc-question-error').hide();
+    }
+    
+    /**
+     * Gère le passage à la question suivante
+     */
+    function handleNextQuestion() {
+        const $currentQuestion = $('.disc-question').eq(currentQuestionIndex);
+        const questionId = $currentQuestion.data('question-id');
+        
+        // Valide que les deux choix sont faits
+        const mostLike = $currentQuestion.find('input[name^="most_like"]:checked').val();
+        const leastLike = $currentQuestion.find('input[name^="least_like"]:checked').val();
+        
+        if (!mostLike || !leastLike) {
+            $currentQuestion.find('.disc-question-error').show();
+            return;
+        }
+        
+        if (mostLike === leastLike) {
+            $currentQuestion.find('.disc-question-error').show();
+            return;
+        }
+        
+        // Calcule le temps de réponse
+        const responseTime = (Date.now() - questionStartTime) / 1000;
+        
+        // Enregistre la réponse
+        responses[currentQuestionIndex] = {
+            question_id: questionId,
+            most_like: mostLike,
+            least_like: leastLike,
+            response_time: responseTime
+        };
+        
+        const totalQuestions = $('.disc-question').length;
+        
+        // Si c'est la dernière question
+        if (currentQuestionIndex === totalQuestions - 1) {
+            showScreen('contact');
+        } else {
+            // Passe à la question suivante
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+            updateProgressBar();
+            questionStartTime = Date.now();
+        }
+    }
+    
+    /**
+     * Gère le retour à la question précédente
+     */
+    function handlePreviousQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+            updateProgressBar();
+            questionStartTime = Date.now();
+        }
+    }
+    
+    /**
+     * Affiche une question spécifique
+     */
+    function showQuestion(index) {
+        $('.disc-question').hide();
+        $('.disc-question').eq(index).fadeIn(300);
+        
+        // Scroll vers le haut
+        $('.disc-test-container').get(0).scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+        });
+    }
+    
+    /**
+     * Met à jour la barre de progression
+     */
+    function updateProgressBar() {
+        const totalQuestions = $('.disc-question').length;
+        const progress = ((currentQuestionIndex + 1) / totalQuestions) * 100;
+        
+        $('.disc-progress-fill').css('width', progress + '%');
+        $('.disc-current-question').text(currentQuestionIndex + 1);
+    }
+    
+    /**
+     * Affiche un écran spécifique
+     */
+    function showScreen(screenName) {
+        $('.disc-screen').removeClass('active').hide();
+        $('.disc-screen-' + screenName).addClass('active').fadeIn(300);
+        
+        // Scroll vers le haut
+        $('.disc-test-container').get(0).scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+        });
+    }
+    
+    /**
+     * Valide une adresse email
+     */
+    function validateEmail(email) {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const $input = $('#disc-email');
+        
+        if (!regex.test(email)) {
+            $input.addClass('error');
+            return false;
+        }
+        
+        $input.removeClass('error');
+        return true;
+    }
+    
+    /**
+     * Soumet le formulaire de contact et calcule les résultats
+     */
+    function submitContactForm() {
+        const $form = $('#disc-contact-form');
+        const $submitBtn = $form.find('.disc-btn-submit');
+        const $errorDiv = $form.find('.disc-form-error');
+        
+        // Récupère les données du formulaire
+        const formData = {
+            action: 'disc_submit_contact',
+            nonce: discTest.nonce,
+            session_token: sessionToken,
+            email: $('#disc-email').val(),
+            first_name: $('#disc-first-name').val(),
+            last_name: $('#disc-last-name').val(),
+            company: $('#disc-company').val(),
+            position: $('#disc-position').val(),
+            consent: $('#disc-consent').is(':checked') ? 1 : 0,
+            responses: JSON.stringify(responses)
+        };
+        
+        // Valide le formulaire
+        if (!formData.first_name || formData.first_name.length < 2) {
+            showError($errorDiv, discTest.strings.required);
+            return;
+        }
+        
+        if (!formData.last_name || formData.last_name.length < 2) {
+            showError($errorDiv, discTest.strings.required);
+            return;
+        }
+        
+        if (!validateEmail(formData.email)) {
+            showError($errorDiv, discTest.strings.emailInvalid);
+            return;
+        }
+        
+        if (!formData.consent) {
+            showError($errorDiv, 'Vous devez accepter la politique de confidentialité.');
+            return;
+        }
+        
+        // Affiche le loader
+        showLoader();
+        $submitBtn.prop('disabled', true).text(discTest.strings.submitting);
+        
+        // Envoie la requête AJAX
+        $.ajax({
+            url: discTest.ajaxUrl,
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                hideLoader();
+                
+                if (response.success) {
+                    displayResults(response.data);
+                } else {
+                    showError($errorDiv, response.data.message || discTest.strings.error);
+                    $submitBtn.prop('disabled', false).text('Recevoir mes résultats');
+                }
+            },
+            error: function() {
+                hideLoader();
+                showError($errorDiv, discTest.strings.error);
+                $submitBtn.prop('disabled', false).text('Recevoir mes résultats');
+            }
+        });
+    }
+    
+    /**
+     * Affiche les résultats du test
+     */
+    function displayResults(data) {
+        // Affiche l'écran des résultats
+        showScreen('results');
+        
+        // Affiche le type de profil
+        $('.disc-profile-type').text(data.profile_type);
+        
+        // Crée le graphique
+        createChart(data.scores);
+        
+        // Affiche la description du profil
+        const description = data.profile_description;
+        
+        let html = '<div class="disc-profile-content">';
+        html += '<h3>' + description.title + '</h3>';
+        html += '<h4>' + description.subtitle + '</h4>';
+        html += '<p>' + description.description + '</p>';
+        
+        html += '<h4>Vos forces principales</h4>';
+        html += '<ul>';
+        description.strengths.forEach(function(strength) {
+            html += '<li>' + strength + '</li>';
+        });
+        html += '</ul>';
+        
+        if (description.challenges) {
+            html += '<h4>Défis potentiels</h4>';
+            html += '<ul>';
+            description.challenges.forEach(function(challenge) {
+                html += '<li>' + challenge + '</li>';
+            });
+            html += '</ul>';
+        }
+        
+        html += '<h4>Conseil de développement</h4>';
+        html += '<p>' + description.development + '</p>';
+        
+        html += '</div>';
+        
+        $('.disc-profile-description').html(html);
+        
+        // Affiche l'avertissement de cohérence si nécessaire
+        if (data.show_consistency_warning) {
+            $('.disc-consistency-notice').show();
+        }
+    }
+    
+    /**
+     * Crée le graphique des scores avec Chart.js
+     */
+    function createChart(scores) {
+        const ctx = document.getElementById('disc-chart');
+        
+        if (!ctx) {
+            return;
+        }
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [
+                    'Dominance',
+                    'Influence',
+                    'Stabilité',
+                    'Conformité'
+                ],
+                datasets: [{
+                    label: 'Score',
+                    data: [
+                        scores.D,
+                        scores.I,
+                        scores.S,
+                        scores.C
+                    ],
+                    backgroundColor: [
+                        'rgba(220, 38, 38, 0.8)',   // Rouge pour D
+                        'rgba(234, 179, 8, 0.8)',   // Jaune pour I
+                        'rgba(34, 197, 94, 0.8)',   // Vert pour S
+                        'rgba(59, 130, 246, 0.8)'   // Bleu pour C
+                    ],
+                    borderColor: [
+                        'rgba(220, 38, 38, 1)',
+                        'rgba(234, 179, 8, 1)',
+                        'rgba(34, 197, 94, 1)',
+                        'rgba(59, 130, 246, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Barres horizontales
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Score: ' + context.parsed.x + '/100';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value;
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1500,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+    }
+    
+    /**
+     * Partage sur LinkedIn
+     */
+    function shareOnLinkedIn() {
+        const url = encodeURIComponent(window.location.href);
+        const text = encodeURIComponent('Je viens de découvrir mon profil DISC pour le leadership ! Découvrez le vôtre :');
+        const linkedinUrl = 'https://www.linkedin.com/sharing/share-offsite/?url=' + url + '&summary=' + text;
+        
+        window.open(linkedinUrl, '_blank', 'width=600,height=400');
+    }
+    
+    /**
+     * Affiche le loader
+     */
+    function showLoader() {
+        $('.disc-loading-overlay').fadeIn(200);
+    }
+    
+    /**
+     * Cache le loader
+     */
+    function hideLoader() {
+        $('.disc-loading-overlay').fadeOut(200);
+    }
+    
+    /**
+     * Affiche un message d'erreur
+     */
+    function showError($container, message) {
+        $container.html('<p class="error">' + message + '</p>').fadeIn(300);
+        
+        setTimeout(function() {
+            $container.fadeOut(300);
+        }, 5000);
+    }
+    
+    /**
+     * Génère un token de session unique
+     */
+    function generateSessionToken() {
+        return 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+    
+})(jQuery);

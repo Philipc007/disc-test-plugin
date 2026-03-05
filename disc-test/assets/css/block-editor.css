@@ -1,6 +1,130 @@
 ﻿/**
- * Block Editor CSS
- * A COMPLETER : Copiez le contenu de l'artifact "DISC Test - Bloc Gutenberg CSS"
+ * CSS pour l'éditeur de bloc Gutenberg
+ * Styles affichés uniquement dans l'éditeur WordPress
  */
 
-/* TODO: Copier le CSS depuis l'artifact */
+.disc-block-editor-preview {
+    padding: 40px 20px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8edf3 100%);
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+}
+
+.disc-block-placeholder {
+    background: white;
+    border-radius: 12px;
+    padding: 48px 32px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 25px rgba(0, 0, 0, 0.05);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.disc-block-icon {
+    color: #667eea;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: center;
+}
+
+.disc-block-placeholder h3 {
+    font-size: 24px;
+    color: #1f2937;
+    margin: 0 0 12px 0;
+    font-weight: 700;
+}
+
+.disc-block-placeholder > p {
+    font-size: 15px;
+    color: #6b7280;
+    margin: 0 0 32px 0;
+}
+
+.disc-block-config-summary {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 24px 0;
+    text-align: left;
+}
+
+.disc-block-config-summary p {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: #4b5563;
+}
+
+.disc-block-config-summary ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.disc-block-config-summary li {
+    padding: 8px 0;
+    font-size: 14px;
+    color: #4b5563;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.disc-block-config-summary li:last-child {
+    border-bottom: none;
+}
+
+.disc-block-config-summary code {
+    background: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #667eea;
+    border: 1px solid #e5e7eb;
+}
+
+.status-enabled {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.status-disabled {
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.disc-block-help {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 24px 0 0 0;
+    padding: 12px 16px;
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    border-radius: 4px;
+    text-align: left;
+}
+
+/* Styles pour le panneau de configuration */
+.components-panel__body .components-base-control {
+    margin-bottom: 20px;
+}
+
+.components-panel__body .components-base-control__help {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 6px;
+}
+
+/* Animation au survol du bloc */
+.disc-block-editor-preview:hover .disc-block-placeholder {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08), 0 15px 35px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
+
+/* Style pour les informations dans la sidebar */
+.components-panel__body ul {
+    margin-top: 8px;
+}
+
+.components-panel__body ul li {
+    margin-bottom: 6px;
+}
