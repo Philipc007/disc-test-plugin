@@ -1,0 +1,29 @@
+﻿# Node modules
+node_modules/
+npm-debug.log*
+
+# Build files
+*.zip
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+debug.log
+
+# WordPress
+wp-config-local.php
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
