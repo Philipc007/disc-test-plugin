@@ -1,0 +1,157 @@
+﻿# Règles du Projet DISC Test Plugin
+
+## Contexte Business
+- Client : LIBERMOUV (Philippe, coach professionnel, formateur DISC, ex-président CJD)
+- Objectif : Lead magnet pour dirigeants PME/ETI
+- Intégration : libermouv.com (WordPress existant)
+- Pipeline : LinkedIn/Kanbox → DISC Test → Mautic → Webinar D4D → Coaching
+- Timeline : Test dans 1 semaine, lancement sous 3 semaines
+
+## Architecture Technique
+
+### Stack
+- WordPress 5.8+ / PHP 7.4+
+- MySQL 5.7+
+- JavaScript vanilla + jQuery
+- Chart.js pour graphiques
+- Approche hybride : Shortcode + Gutenberg
+
+### Structure des fichiers (NON NÉGOCIABLE)
+```
+disc-test/
+├── disc-test.php                    # Fichier principal du plugin
+├── includes/                        # Classes PHP
+│   ├── class-disc-database.php
+│   ├── class-disc-security.php
+│   ├── class-disc-renderer.php
+│   ├── class-disc-frontend.php
+│   ├── class-disc-email.php
+│   └── class-disc-admin.php
+├── assets/
+│   ├── css/
+│   │   ├── frontend.css
+│   │   ├── admin.css
+│   │   └── block-editor.css
+│   └── js/
+│       ├── frontend.js
+│       └── admin.js
+└── build/
+    └── block.js                     # Bloc Gutenberg (optionnel phase 1)
+```
+
+## Règles de Code
+
+### Sécurité (PRIORITÉ ABSOLUE)
+- TOUJOURS utiliser `$wpdb->prepare()` pour les requêtes SQL
+- TOUJOURS valider avec `sanitize_*()` à l'entrée
+- TOUJOURS échapper avec `esc_*()` à la sortie
+- TOUJOURS vérifier les nonces sur les actions AJAX
+- JAMAIS de données sensibles en clair (encryption obligatoire)
+- Rate limiting : 3 tests/heure/IP (NON NÉGOCIABLE)
+
+### Standards WordPress
+- Suivre les WordPress Coding Standards
+- Utiliser les fonctions WordPress natives (pas de code custom si équivalent existe)
+- Internationalisation : toutes les chaînes avec `__()` ou `_e()`
+- Text domain : 'disc-test'
+- Hooks : privilégier `add_action()` / `add_filter()` aux modifications directes
+
+### Performance
+- Charger Chart.js depuis CDN (pas en local)
+- CSS/JS minifiés en production
+- Indexes sur toutes les colonnes de recherche en BDD
+- Prepared statements pour toutes les requêtes
+
+### UX/UI
+- Mobile-first (60%+ du trafic attendu)
+- Design moderne (gradient #667eea → #764ba2)
+- Animations fluides mais subtiles
+- Pas de page reload inutile (SPA experience)
+- Feedback immédiat sur toute action utilisateur
+
+## Contraintes Business
+
+### Lead Generation
+- Capture email APRÈS les questions (pas avant)
+- Formulaire RGPD-compliant obligatoire
+- Email automatique avec résultats (pas de PDF en phase 1)
+- Données exportables en CSV
+
+### Test DISC
+- 28 questions exactement (validé par Philippe, expert DISC)
+- Choix forcé : "le plus" ET "le moins" obligatoires
+- Temps de réponse trackés (détection triche)
+- Score de cohérence calculé et affiché si < 60%
+- 12 profils DISC avec descriptions détaillées
+
+### Anti-triche
+- Questions à choix forcé (pas d'échelle Likert)
+- Paires de questions cohérentes pour validation
+- Validation des temps (trop rapide OU trop lent = warning)
+- Score de cohérence visible dans l'admin
+
+## Ce qui est INTERDIT
+
+❌ Modifier la structure des 28 questions sans validation Philippe
+❌ Supprimer ou contourner les mécanismes de sécurité
+❌ Utiliser localStorage/sessionStorage (pas supporté dans artifacts Claude)
+❌ Ajouter des dépendances non listées
+❌ Modifier l'approche hybride shortcode/Gutenberg
+❌ Créer des tables sans préfixe $wpdb->prefix
+❌ Hardcoder des URLs ou des chemins
+
+## Ce qui est ENCOURAGÉ
+
+✅ Améliorer l'UX sans changer la logique métier
+✅ Optimiser les performances
+✅ Ajouter des logs pour le debug
+✅ Améliorer les messages d'erreur
+✅ Ajouter des commentaires clairs
+✅ Suivre les patterns WordPress existants
+✅ Proposer des améliorations avec justification
+
+## Priorités Actuelles
+
+### Phase 1 - MVP (EN COURS)
+1. Finaliser les fichiers manquants (admin.js, export CSV)
+2. Tester le parcours complet end-to-end
+3. Corriger les bugs bloquants
+4. Valider l'envoi d'emails
+
+### Phase 2 - Intégrations (APRÈS TESTS)
+1. Webhook Mautic
+2. Tags CRM par profil DISC
+3. Séquences email personnalisées
+
+### Phase 3 - Optimisations (APRÈS LANCEMENT)
+1. Génération PDF
+2. Bloc Gutenberg compilé
+3. Analytics avancés
+4. A/B testing
+
+## Notes Importantes
+
+- Le plugin doit fonctionner SANS le bloc Gutenberg (shortcode suffit)
+- Les descriptions des 12 profils DISC sont validées par Philippe (ne pas modifier sans accord)
+- L'email est chiffré en BDD (clé dans wp-config.php)
+- Le design utilise les couleurs DISC standard : Rouge (D), Jaune (I), Vert (S), Bleu (C)
+- Tous les textes sont en français (public francophone)
+
+## Commandes Utiles
+
+```bash
+# Créer le ZIP pour WordPress
+zip -r disc-test.zip disc-test/ -x "*.git*" -x "node_modules/*"
+
+# Si vous compilez le bloc Gutenberg (optionnel)
+npm install @wordpress/scripts --save-dev
+npm run build
+```
+
+## Contact & Validation
+
+Pour toute question sur :
+- La méthodologie DISC → Valider avec Philippe
+- L'architecture technique → Autonome selon ces règles
+- Les priorités business → Référence TASKS.md
+- Les bugs bloquants → Documenter dans GitHub Issues
