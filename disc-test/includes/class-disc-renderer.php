@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Classe DISC_Renderer
  * Génère le HTML du test (approche hybride shortcode/Gutenberg)
@@ -198,7 +198,7 @@ class DISC_Renderer {
                                 <input type="checkbox" name="consent" id="disc-consent" required>
                                 <span><?php printf(
                                     __('J\'accepte la <a href="%s" target="_blank">politique de confidentialité</a> et consens au traitement de mes données personnelles. *', 'disc-test'),
-                                    get_privacy_policy_url()
+                                    esc_url(get_privacy_policy_url())
                                 ); ?></span>
                             </label>
                         </div>
@@ -236,7 +236,7 @@ class DISC_Renderer {
                     
                     <div class="disc-next-steps">
                         <h4><?php _e('Et maintenant ?', 'disc-test'); ?></h4>
-                        <p><?php _e('Vous allez recevoir par email un rapport PDF détaillé avec des conseils personnalisés pour développer votre leadership selon votre profil.', 'disc-test'); ?></p>
+                        <p><?php _e('Vous allez recevoir par email un rapport détaillé avec des conseils personnalisés pour développer votre leadership selon votre profil.', 'disc-test'); ?></p>
                         <p><?php _e('En attendant, partagez ce test avec vos collègues pour mieux comprendre vos dynamiques d\'équipe !', 'disc-test'); ?></p>
                     </div>
                     
@@ -465,24 +465,29 @@ class DISC_Renderer {
         // Trie les scores par valeur décroissante
         arsort($scores);
         $dimensions = array_keys($scores);
-        
-        // Profil dominant = les 2 dimensions les plus élevées si elles dépassent 60
-        $primary = $dimensions[0];
+
+        $primary   = $dimensions[0];
         $secondary = $dimensions[1];
-        
-        $profile = '';
-        
+
+        $selected = array();
+
         if ($scores[$primary] >= 60) {
-            $profile .= $primary;
-            
+            $selected[] = $primary;
+
             if ($scores[$secondary] >= 60) {
-                $profile .= $secondary;
+                $selected[] = $secondary;
             }
         } else {
-            // Profil équilibré
-            $profile = 'DISC';
+            return 'DISC';
         }
-        
-        return $profile;
+
+        // Toujours retourner les lettres dans l'ordre canonique D-I-S-C
+        // pour matcher les clés de get_profile_description()
+        $disc_order = array('D' => 0, 'I' => 1, 'S' => 2, 'C' => 3);
+        usort($selected, function($a, $b) use ($disc_order) {
+            return $disc_order[$a] - $disc_order[$b];
+        });
+
+        return implode('', $selected);
     }
 }

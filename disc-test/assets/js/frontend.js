@@ -430,13 +430,78 @@
     
     /**
      * Partage sur LinkedIn
+     * LinkedIn ne permet plus de pré-remplir le texte via URL.
+     * On affiche donc le texte à copier, puis on ouvre LinkedIn.
      */
     function shareOnLinkedIn() {
-        const url = encodeURIComponent(window.location.href);
-        const text = encodeURIComponent('Je viens de découvrir mon profil DISC pour le leadership ! Découvrez le vôtre :');
-        const linkedinUrl = 'https://www.linkedin.com/sharing/share-offsite/?url=' + url + '&summary=' + text;
-        
-        window.open(linkedinUrl, '_blank', 'width=600,height=400');
+        const profileType = $('.disc-profile-type').text();
+        const shareText = 'Je viens de découvrir mon profil DISC : ' + profileType + ' 🎯\n'
+            + 'Un outil puissant pour mieux se connaître en tant que leader.\n'
+            + 'Découvrez le vôtre → ' + window.location.href;
+
+        // Copie dans le presse-papier si disponible
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(shareText).then(function() {
+                showLinkedInModal(shareText);
+            }).catch(function() {
+                showLinkedInModal(shareText);
+            });
+        } else {
+            showLinkedInModal(shareText);
+        }
+    }
+
+    /**
+     * Affiche la modale de partage LinkedIn
+     */
+    function showLinkedInModal(shareText) {
+        // Supprime une modale existante
+        $('#disc-linkedin-modal').remove();
+
+        const modal = $('<div id="disc-linkedin-modal" style="'
+            + 'position:fixed;top:0;left:0;width:100%;height:100%;'
+            + 'background:rgba(0,0,0,0.6);z-index:99999;'
+            + 'display:flex;align-items:center;justify-content:center;">'
+            + '<div style="background:#fff;border-radius:12px;padding:30px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">'
+            + '<h3 style="margin:0 0 12px;font-size:18px;">Partager sur LinkedIn</h3>'
+            + '<p style="margin:0 0 12px;color:#555;font-size:14px;">LinkedIn ne permet plus de pré-remplir le texte. Copiez ce message, puis collez-le dans votre post :</p>'
+            + '<textarea id="disc-share-text" style="width:100%;height:100px;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:none;">' + shareText + '</textarea>'
+            + '<p id="disc-copy-confirm" style="color:#22c55e;font-size:13px;margin:6px 0 0;display:none;">✓ Texte copié dans le presse-papier !</p>'
+            + '<div style="display:flex;gap:10px;margin-top:16px;">'
+            + '<button id="disc-copy-btn" style="flex:1;padding:10px;background:#667eea;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;">Copier le texte</button>'
+            + '<button id="disc-linkedin-btn" style="flex:1;padding:10px;background:#0077b5;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;">Ouvrir LinkedIn</button>'
+            + '<button id="disc-modal-close" style="padding:10px 14px;background:#f1f1f1;border:none;border-radius:6px;cursor:pointer;font-size:14px;">✕</button>'
+            + '</div></div></div>');
+
+        $('body').append(modal);
+
+        $('#disc-copy-btn').on('click', function() {
+            const text = $('#disc-share-text').val();
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function() {
+                    $('#disc-copy-confirm').show();
+                });
+            } else {
+                $('#disc-share-text').select();
+                document.execCommand('copy');
+                $('#disc-copy-confirm').show();
+            }
+        });
+
+        $('#disc-linkedin-btn').on('click', function() {
+            const url = encodeURIComponent(window.location.href);
+            window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + url, '_blank', 'width=600,height=600');
+        });
+
+        $('#disc-modal-close, #disc-linkedin-modal').on('click', function(e) {
+            if (e.target === this) {
+                $('#disc-linkedin-modal').remove();
+            }
+        });
+
+        $('#disc-linkedin-modal > div').on('click', function(e) {
+            e.stopPropagation();
+        });
     }
     
     /**

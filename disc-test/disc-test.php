@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Plugin Name: Test DISC Lead Magnet
  * Plugin URI: https://votresite.com/disc-test

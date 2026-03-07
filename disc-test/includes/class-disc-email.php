@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Classe DISC_Email
  * Gère l'envoi des emails pour le plugin
@@ -95,7 +95,7 @@ class DISC_Email {
                 </div>
                 <div class="footer">
                     <p>Cet email a été envoyé suite à votre demande sur notre site.</p>
-                    <p>Pour toute question, contactez-nous à <?php echo get_option('admin_email'); ?></p>
+                    <p>Pour toute question, contactez-nous à <?php echo esc_html(get_option('admin_email')); ?></p>
                 </div>
             </div>
         </body>

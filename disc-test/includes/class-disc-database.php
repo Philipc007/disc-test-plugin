@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Classe DISC_Database
  * Gère toutes les opérations de base de données pour le plugin DISC Test
@@ -135,7 +135,7 @@ class DISC_Database {
             array('order' => 12, 'd' => "Je remets en question le statu quo", 'i' => "Je suis spontané et expressif", 's' => "Je suis patient face aux difficultés", 'c' => "Je suis minutieux et précis"),
             array('order' => 13, 'd' => "Je préfère diriger plutôt que suivre", 'i' => "J'aime travailler en équipe et socialiser", 's' => "Je préfère les environnements calmes et prévisibles", 'c' => "Je suis systématique dans mon organisation"),
             array('order' => 14, 'd' => "Je prends des décisions fermes", 'i' => "Je communique avec enthousiasme", 's' => "Je soutiens loyalement mes collègues", 'c' => "Je documente tout avec précision"),
-            array('order' => 15, 'd' => "Je suis orienté vers les résultats immédiats", 'i' => "J'optimiste et positif", 's' => "Je préfère les changements graduels", 'c' => "Je suis prudent et réfléchi"),
+            array('order' => 15, 'd' => "Je suis orienté vers les résultats immédiats", 'i' => "Je suis optimiste et positif", 's' => "Je préfère les changements graduels", 'c' => "Je suis prudent et réfléchi"),
             array('order' => 16, 'd' => "Je donne des directives claires", 'i' => "Je suis chaleureux et amical", 's' => "Je suis stable sous pression", 'c' => "Je suis objectif et impartial"),
             array('order' => 17, 'd' => "J'aime les situations qui demandent de l'audace", 'i' => "J'exprime mes idées avec passion", 's' => "Je crée un environnement de travail harmonieux", 'c' => "J'analyse les risques avant d'avancer"),
             array('order' => 18, 'd' => "Je suis direct dans mes feedbacks", 'i' => "Je motive les autres par mon énergie", 's' => "Je suis prévisible et constant", 'c' => "Je suis discipliné et rigoureux"),
@@ -166,6 +166,40 @@ class DISC_Database {
         }
     }
     
+    /**
+     * Récupère une question par son ID
+     */
+    public static function get_question($id) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'disc_questions';
+
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table WHERE id = %d",
+            intval($id)
+        ), ARRAY_A);
+    }
+
+    /**
+     * Met à jour une question existante
+     */
+    public static function update_question($id, $data) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'disc_questions';
+
+        return $wpdb->update(
+            $table,
+            array(
+                'statement_d' => sanitize_text_field($data['statement_d']),
+                'statement_i' => sanitize_text_field($data['statement_i']),
+                'statement_s' => sanitize_text_field($data['statement_s']),
+                'statement_c' => sanitize_text_field($data['statement_c']),
+            ),
+            array('id' => intval($id)),
+            array('%s', '%s', '%s', '%s'),
+            array('%d')
+        );
+    }
+
     /**
      * Récupère toutes les questions dans l'ordre
      */
@@ -239,6 +273,19 @@ class DISC_Database {
         return false;
     }
     
+    /**
+     * Récupère un résultat par son ID
+     */
+    public static function get_result_by_id($id) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'disc_results';
+
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table WHERE id = %d",
+            intval($id)
+        ), ARRAY_A);
+    }
+
     /**
      * Récupère un résultat par token de session
      */

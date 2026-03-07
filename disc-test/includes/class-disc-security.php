@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Classe DISC_Security
  * Gère tous les aspects de sécurité du plugin DISC Test
@@ -35,7 +35,8 @@ class DISC_Security {
         if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
             $ip = $_SERVER['HTTP_CLIENT_IP'];
         } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+            // X-Forwarded-For peut contenir plusieurs IPs (client, proxy1, proxy2)
+            $ip = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
         } else {
             $ip = $_SERVER['REMOTE_ADDR'] ?? '';
         }

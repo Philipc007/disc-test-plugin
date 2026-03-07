@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Classe DISC_Frontend
  * Gère toutes les interactions frontend du plugin
@@ -61,11 +61,11 @@ class DISC_Frontend {
         
         // Récupère et valide les données du formulaire
         $contact_data = array(
-            'email' => sanitize_email($_POST['email'] ?? ''),
-            'first_name' => sanitize_text_field($_POST['first_name'] ?? ''),
-            'last_name' => sanitize_text_field($_POST['last_name'] ?? ''),
-            'company' => sanitize_text_field($_POST['company'] ?? ''),
-            'position' => sanitize_text_field($_POST['position'] ?? ''),
+            'email' => sanitize_email(wp_unslash($_POST['email'] ?? '')),
+            'first_name' => sanitize_text_field(wp_unslash($_POST['first_name'] ?? '')),
+            'last_name' => sanitize_text_field(wp_unslash($_POST['last_name'] ?? '')),
+            'company' => sanitize_text_field(wp_unslash($_POST['company'] ?? '')),
+            'position' => sanitize_text_field(wp_unslash($_POST['position'] ?? '')),
             'consent' => isset($_POST['consent']) ? 1 : 0
         );
         
@@ -90,12 +90,23 @@ class DISC_Frontend {
         // Calcule les scores DISC
         $scores = array('D' => 0, 'I' => 0, 'S' => 0, 'C' => 0);
         $response_times = array();
-        
+        $valid_dimensions = array('D', 'I', 'S', 'C');
+
         foreach ($responses as $response) {
+            $most_like = strtoupper(sanitize_text_field($response['most_like'] ?? ''));
+            $least_like = strtoupper(sanitize_text_field($response['least_like'] ?? ''));
+
+            // Valide que les dimensions sont bien D, I, S ou C
+            if (!in_array($most_like, $valid_dimensions) || !in_array($least_like, $valid_dimensions)) {
+                wp_send_json_error(array(
+                    'message' => __('Données de réponse invalides. Veuillez recommencer le test.', 'disc-test')
+                ));
+            }
+
             // +2 points pour "le plus", -1 point pour "le moins"
-            $scores[$response['most_like']] += 2;
-            $scores[$response['least_like']] -= 1;
-            
+            $scores[$most_like] += 2;
+            $scores[$least_like] -= 1;
+
             $response_times[] = floatval($response['response_time'] ?? 0);
         }
         

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Classe DISC_Admin
  * Gère l'interface d'administration WordPress du plugin
@@ -85,16 +85,49 @@ class DISC_Admin {
         if (!current_user_can('manage_options')) {
             wp_die(__('Vous n\'avez pas les permissions nécessaires.', 'disc-test'));
         }
-        
+
+        // Traitement du renvoi d'email
+        if (isset($_GET['action']) && $_GET['action'] === 'resend_email' && isset($_GET['result_id'])) {
+            check_admin_referer('disc_resend_email_' . intval($_GET['result_id']));
+
+            $result = DISC_Database::get_result_by_id(intval($_GET['result_id']));
+
+            if ($result) {
+                $contact_data = array(
+                    'email'      => $result['email'],
+                    'first_name' => $result['first_name'],
+                    'last_name'  => $result['last_name'],
+                    'company'    => $result['company'],
+                    'position'   => $result['position'],
+                );
+                $scores = array(
+                    'D' => $result['score_d'],
+                    'I' => $result['score_i'],
+                    'S' => $result['score_s'],
+                    'C' => $result['score_c'],
+                );
+
+                $sent = DISC_Email::send_results_email($contact_data, $scores, $result['profile_type']);
+                DISC_Database::log_event('email_resent', array('result_id' => $result['id'], 'success' => $sent));
+
+                $notice_class = $sent ? 'notice-success' : 'notice-error';
+                $notice_msg   = $sent
+                    ? sprintf(__('Email renvoyé avec succès à %s.', 'disc-test'), esc_html($result['email']))
+                    : sprintf(__('Échec du renvoi à %s. Vérifiez votre configuration SMTP.', 'disc-test'), esc_html($result['email']));
+
+                echo '<div class="notice ' . $notice_class . ' is-dismissible"><p>' . $notice_msg . '</p></div>';
+            }
+        }
+
         // Log l'accès admin
         DISC_Database::log_event('admin_access_results');
-        
+
         $results = DISC_Database::get_all_results(100, 0);
-        
+
         ?>
         <div class="wrap">
             <h1><?php _e('Résultats du Test DISC', 'disc-test'); ?></h1>
-            
+
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
@@ -105,15 +138,24 @@ class DISC_Admin {
                         <th><?php _e('Profil', 'disc-test'); ?></th>
                         <th><?php _e('Scores', 'disc-test'); ?></th>
                         <th><?php _e('Cohérence', 'disc-test'); ?></th>
+                        <th><?php _e('Action', 'disc-test'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($results)): ?>
                         <tr>
-                            <td colspan="7"><?php _e('Aucun résultat disponible.', 'disc-test'); ?></td>
+                            <td colspan="8"><?php _e('Aucun résultat disponible.', 'disc-test'); ?></td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($results as $result): ?>
+                            <?php
+                            $resend_url = wp_nonce_url(
+                                admin_url('admin.php?page=disc-test&action=resend_email&result_id=' . $result['id']),
+                                'disc_resend_email_' . $result['id']
+                            );
+                            $consistency = floatval($result['consistency_score']);
+                            $color = $consistency >= 70 ? 'green' : ($consistency >= 50 ? 'orange' : 'red');
+                            ?>
                             <tr>
                                 <td><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($result['completed_at']))); ?></td>
                                 <td><?php echo esc_html($result['first_name'] . ' ' . $result['last_name']); ?></td>
@@ -121,28 +163,31 @@ class DISC_Admin {
                                 <td><?php echo esc_html($result['company']); ?></td>
                                 <td><strong><?php echo esc_html($result['profile_type']); ?></strong></td>
                                 <td>
-                                    D:<?php echo $result['score_d']; ?> 
-                                    I:<?php echo $result['score_i']; ?> 
-                                    S:<?php echo $result['score_s']; ?> 
-                                    C:<?php echo $result['score_c']; ?>
+                                    D:<?php echo intval($result['score_d']); ?>
+                                    I:<?php echo intval($result['score_i']); ?>
+                                    S:<?php echo intval($result['score_s']); ?>
+                                    C:<?php echo intval($result['score_c']); ?>
                                 </td>
                                 <td>
-                                    <?php 
-                                    $consistency = $result['consistency_score'];
-                                    $color = $consistency >= 70 ? 'green' : ($consistency >= 50 ? 'orange' : 'red');
-                                    ?>
-                                    <span style="color: <?php echo $color; ?>;">
+                                    <span style="color: <?php echo esc_attr($color); ?>;">
                                         <?php echo round($consistency, 1); ?>%
                                     </span>
+                                </td>
+                                <td>
+                                    <a href="<?php echo esc_url($resend_url); ?>"
+                                       class="button button-small"
+                                       onclick="return confirm('<?php echo esc_js(__('Renvoyer l\'email de résultats à ', 'disc-test') . $result['email'] . ' ?'); ?>')">
+                                        <?php _e('Renvoyer email', 'disc-test'); ?>
+                                    </a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </tbody>
             </table>
-            
+
             <p>
-                <a href="<?php echo admin_url('admin.php?page=disc-test&action=export'); ?>" class="button">
+                <a href="<?php echo esc_url(admin_url('admin.php?page=disc-test&action=export')); ?>" class="button">
                     <?php _e('Exporter en CSV', 'disc-test'); ?>
                 </a>
             </p>
@@ -200,7 +245,7 @@ class DISC_Admin {
                         <tr>
                             <td><strong><?php echo esc_html($profile['profile_type']); ?></strong></td>
                             <td><?php echo number_format_i18n($profile['count']); ?></td>
-                            <td><?php echo round(($profile['count'] / $stats['total_tests']) * 100, 1); ?>%</td>
+                            <td><?php echo $stats['total_tests'] > 0 ? round(($profile['count'] / $stats['total_tests']) * 100, 1) : 0; ?>%</td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -216,32 +261,116 @@ class DISC_Admin {
         if (!current_user_can('manage_options')) {
             wp_die(__('Vous n\'avez pas les permissions nécessaires.', 'disc-test'));
         }
-        
+
+        $action      = isset($_GET['action']) ? $_GET['action'] : 'list';
+        $question_id = isset($_GET['question_id']) ? intval($_GET['question_id']) : 0;
+
+        // Traitement de la sauvegarde
+        if ($action === 'save' && $question_id && isset($_POST['disc_edit_question_nonce'])) {
+            check_admin_referer('disc_edit_question_' . $question_id, 'disc_edit_question_nonce');
+
+            DISC_Database::update_question($question_id, array(
+                'statement_d' => wp_unslash($_POST['statement_d'] ?? ''),
+                'statement_i' => wp_unslash($_POST['statement_i'] ?? ''),
+                'statement_s' => wp_unslash($_POST['statement_s'] ?? ''),
+                'statement_c' => wp_unslash($_POST['statement_c'] ?? ''),
+            ));
+
+            echo '<div class="notice notice-success is-dismissible"><p>' . __('Question mise à jour.', 'disc-test') . '</p></div>';
+            $action = 'list';
+        }
+
+        // Formulaire d'édition
+        if ($action === 'edit' && $question_id) {
+            $q = DISC_Database::get_question($question_id);
+            if (!$q) {
+                echo '<div class="notice notice-error"><p>' . __('Question introuvable.', 'disc-test') . '</p></div>';
+            } else {
+                $save_url = admin_url('admin.php?page=disc-test-questions&action=save&question_id=' . $question_id);
+                ?>
+                <div class="wrap">
+                    <h1>
+                        <?php printf(__('Modifier la question %d', 'disc-test'), $q['question_order']); ?>
+                        <a href="<?php echo admin_url('admin.php?page=disc-test-questions'); ?>" class="page-title-action">
+                            <?php _e('← Retour à la liste', 'disc-test'); ?>
+                        </a>
+                    </h1>
+
+                    <form method="post" action="<?php echo esc_url($save_url); ?>">
+                        <?php wp_nonce_field('disc_edit_question_' . $question_id, 'disc_edit_question_nonce'); ?>
+
+                        <table class="form-table">
+                            <?php
+                            $dimensions = array(
+                                'D' => array('label' => __('D — Dominance', 'disc-test'),  'color' => '#dc2626', 'field' => 'statement_d'),
+                                'I' => array('label' => __('I — Influence', 'disc-test'),   'color' => '#eab308', 'field' => 'statement_i'),
+                                'S' => array('label' => __('S — Stabilité', 'disc-test'),   'color' => '#22c55e', 'field' => 'statement_s'),
+                                'C' => array('label' => __('C — Conformité', 'disc-test'),  'color' => '#3b82f6', 'field' => 'statement_c'),
+                            );
+                            foreach ($dimensions as $dim => $meta):
+                            ?>
+                            <tr>
+                                <th scope="row">
+                                    <label for="<?php echo $meta['field']; ?>" style="color: <?php echo $meta['color']; ?>; font-weight: bold;">
+                                        <?php echo $meta['label']; ?>
+                                    </label>
+                                </th>
+                                <td>
+                                    <textarea
+                                        id="<?php echo $meta['field']; ?>"
+                                        name="<?php echo $meta['field']; ?>"
+                                        rows="3"
+                                        class="large-text"
+                                    ><?php echo esc_textarea($q[$meta['field']]); ?></textarea>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </table>
+
+                        <p class="submit">
+                            <input type="submit" class="button button-primary" value="<?php _e('Enregistrer', 'disc-test'); ?>">
+                            <a href="<?php echo admin_url('admin.php?page=disc-test-questions'); ?>" class="button">
+                                <?php _e('Annuler', 'disc-test'); ?>
+                            </a>
+                        </p>
+                    </form>
+                </div>
+                <?php
+                return;
+            }
+        }
+
+        // Liste des questions
         $questions = DISC_Database::get_questions();
-        
         ?>
         <div class="wrap">
             <h1><?php _e('Questions du Test DISC', 'disc-test'); ?></h1>
-            <p><?php _e('Gérez les questions de votre test DISC. Les modifications prendront effet immédiatement.', 'disc-test'); ?></p>
-            
-            <table class="wp-list-table widefat">
+            <p><?php _e('Cliquez sur "Modifier" pour éditer une question. Les modifications sont appliquées immédiatement.', 'disc-test'); ?></p>
+
+            <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
-                        <th width="5%"><?php _e('#', 'disc-test'); ?></th>
-                        <th width="23%"><?php _e('D - Dominance', 'disc-test'); ?></th>
-                        <th width="23%"><?php _e('I - Influence', 'disc-test'); ?></th>
-                        <th width="23%"><?php _e('S - Stabilité', 'disc-test'); ?></th>
-                        <th width="23%"><?php _e('C - Conformité', 'disc-test'); ?></th>
+                        <th width="4%"><?php _e('#', 'disc-test'); ?></th>
+                        <th width="22%" style="color:#dc2626;"><?php _e('D — Dominance', 'disc-test'); ?></th>
+                        <th width="22%" style="color:#eab308;"><?php _e('I — Influence', 'disc-test'); ?></th>
+                        <th width="22%" style="color:#22c55e;"><?php _e('S — Stabilité', 'disc-test'); ?></th>
+                        <th width="22%" style="color:#3b82f6;"><?php _e('C — Conformité', 'disc-test'); ?></th>
+                        <th width="8%"><?php _e('Action', 'disc-test'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($questions as $q): ?>
                         <tr>
-                            <td><?php echo $q['question_order']; ?></td>
+                            <td><strong><?php echo $q['question_order']; ?></strong></td>
                             <td><?php echo esc_html($q['statement_d']); ?></td>
                             <td><?php echo esc_html($q['statement_i']); ?></td>
                             <td><?php echo esc_html($q['statement_s']); ?></td>
                             <td><?php echo esc_html($q['statement_c']); ?></td>
+                            <td>
+                                <a href="<?php echo esc_url(admin_url('admin.php?page=disc-test-questions&action=edit&question_id=' . $q['id'])); ?>" class="button button-small">
+                                    <?php _e('Modifier', 'disc-test'); ?>
+                                </a>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
