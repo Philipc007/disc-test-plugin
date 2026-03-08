@@ -451,15 +451,17 @@ class DISC_Admin {
         // Sauvegarde des paramètres
         if (isset($_POST['disc_save_settings'])) {
             check_admin_referer('disc_settings_save');
-            
-            update_option('disc_email_subject', sanitize_text_field($_POST['email_subject']));
-            update_option('disc_crm_webhook', esc_url_raw($_POST['crm_webhook']));
-            
-            echo '<div class="notice notice-success"><p>' . __('Paramètres enregistrés.', 'disc-test') . '</p></div>';
+
+            update_option('disc_email_subject', sanitize_text_field(wp_unslash($_POST['email_subject'] ?? '')));
+            update_option('disc_crm_webhook', esc_url_raw(wp_unslash($_POST['crm_webhook'] ?? '')));
+            update_option('disc_tag_prefix', sanitize_key(wp_unslash($_POST['tag_prefix'] ?? 'disc')));
+
+            echo '<div class="notice notice-success is-dismissible"><p>' . __('Paramètres enregistrés.', 'disc-test') . '</p></div>';
         }
-        
+
         $email_subject = get_option('disc_email_subject', __('Votre profil DISC', 'disc-test'));
-        $crm_webhook = get_option('disc_crm_webhook', '');
+        $crm_webhook   = get_option('disc_crm_webhook', '');
+        $tag_prefix    = get_option('disc_tag_prefix', 'disc');
         
         ?>
         <div class="wrap">
@@ -486,6 +488,25 @@ class DISC_Admin {
                         <td>
                             <input type="url" id="crm_webhook" name="crm_webhook" value="<?php echo esc_attr($crm_webhook); ?>" class="regular-text">
                             <p class="description"><?php _e('URL webhook pour envoyer automatiquement les leads à votre CRM.', 'disc-test'); ?></p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">
+                            <label for="tag_prefix"><?php _e('Préfixe des tags CRM', 'disc-test'); ?></label>
+                        </th>
+                        <td>
+                            <input type="text" id="tag_prefix" name="tag_prefix" value="<?php echo esc_attr($tag_prefix); ?>" class="small-text" pattern="[a-z0-9\-]+" placeholder="disc">
+                            <p class="description">
+                                <?php _e('Préfixe utilisé pour tous les tags envoyés au CRM. Uniquement lettres minuscules, chiffres et tirets.', 'disc-test'); ?><br>
+                                <?php
+                                $ex = esc_html($tag_prefix ?: 'disc');
+                                printf(
+                                    __('Exemples avec le préfixe actuel : <code>%1$s</code>, <code>%1$s-di</code>, <code>%1$s-d</code>, <code>%1$s-consistent</code>', 'disc-test'),
+                                    $ex
+                                );
+                                ?>
+                            </p>
                         </td>
                     </tr>
                 </table>

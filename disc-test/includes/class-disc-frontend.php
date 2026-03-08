@@ -26,6 +26,42 @@ class DISC_Frontend {
     private function __construct() {
         // Les hooks sont déjà définis dans la classe principale
     }
+
+    /**
+     * Génère les tags CRM à partir des résultats du test
+     * Le préfixe est configurable dans les paramètres du plugin
+     */
+    public static function generate_crm_tags($profile_type, $scores, $consistency_score) {
+        $prefix = sanitize_key(get_option('disc_tag_prefix', 'disc'));
+        if (empty($prefix)) {
+            $prefix = 'disc';
+        }
+
+        $tags = array();
+
+        // Tag de base — identifie tous les leads issus du test DISC
+        $tags[] = $prefix;
+
+        // Tag profil complet (ex: disc-di, disc-s, disc-disc)
+        $tags[] = $prefix . '-' . strtolower($profile_type);
+
+        // Tags par dimension dominante (score >= 60)
+        $dimensions = array('D', 'I', 'S', 'C');
+        foreach ($dimensions as $dim) {
+            if ($scores[$dim] >= 60) {
+                $tags[] = $prefix . '-' . strtolower($dim);
+            }
+        }
+
+        // Tag qualité basé sur le score de cohérence
+        if ($consistency_score >= 70) {
+            $tags[] = $prefix . '-consistent';
+        } elseif ($consistency_score < 50) {
+            $tags[] = $prefix . '-suspect';
+        }
+
+        return array_unique($tags);
+    }
     
     /**
      * Gère la soumission d'une réponse à une question
@@ -199,13 +235,14 @@ class DISC_Frontend {
                 'score_c'           => $scores['C'],
                 'consistency_score' => $consistency_score,
                 'completed_at'      => current_time('c'),
+                'tags'              => self::generate_crm_tags($profile_type, $scores, $consistency_score),
             );
 
             wp_remote_post($webhook_url, array(
                 'headers'   => array('Content-Type' => 'application/json'),
                 'body'      => json_encode($payload),
                 'timeout'   => 5,
-                'blocking'  => false, // Non-bloquant : n'attend pas la réponse
+                'blocking'  => false,
             ));
         }
         
