@@ -372,6 +372,107 @@ score = (consistent / total_paires) * 100
 - > 30% des questions trop rapides
 - > 5 questions trop lentes
 
+## Intégrations CRM
+
+### Architecture des deux canaux
+
+Après chaque test complété, deux canaux se déclenchent **simultanément et indépendamment** :
+
+```
+Test DISC complété
+    │
+    ├─→ do_action('disc_test_completed')   ← Canal 1 : Hook WordPress
+    │       $contact_data, $scores, $profile_type
+    │
+    └─→ POST JSON vers webhook URL          ← Canal 2 : HTTP Webhook
+            (si URL configurée dans Paramètres)
+```
+
+### Canal 1 — Hook WordPress (`disc_test_completed`)
+
+**Usage** : Bit Integrations, plugins WordPress, code custom
+
+```php
+// Exemple d'écoute dans functions.php ou un plugin custom
+add_action('disc_test_completed', function($contact_data, $scores, $profile_type) {
+    // $contact_data : email, first_name, last_name, company, position
+    // $scores : array('D' => 85, 'I' => 72, 'S' => 40, 'C' => 30)
+    // $profile_type : 'DI', 'S', 'DISC', etc.
+}, 10, 3);
+```
+
+**Bit Integrations (recommandé sur site pro)** :
+- Doc : https://bit-integrations.com/wp-docs/actions/mautic-integrations/
+- Disponible en version Pro uniquement
+- Écoute le hook `disc_test_completed` automatiquement
+- Aucune URL webhook à configurer
+
+### Canal 2 — HTTP Webhook (POST JSON)
+
+**Usage** : n8n, Make, Zapier, Mautic direct, tout service HTTP
+
+**Payload JSON envoyé** :
+```json
+{
+  "email": "john.doe@example.com",
+  "first_name": "John",
+  "last_name": "Doe",
+  "company": "Acme Corp",
+  "position": "Directeur",
+  "profile_type": "DI",
+  "score_d": 88,
+  "score_i": 100,
+  "score_s": 0,
+  "score_c": 12,
+  "consistency_score": 75.5,
+  "completed_at": "2026-03-08T17:58:00+01:00",
+  "tags": ["disc", "disc-di", "disc-d", "disc-i", "disc-consistent"]
+}
+```
+
+**Caractéristiques techniques** :
+- Méthode : POST
+- Content-Type : application/json
+- Timeout : 5 secondes
+- Non-bloquant : n'affecte pas le temps de réponse du test
+- Erreurs silencieuses : un échec webhook ne bloque pas l'utilisateur
+
+### Tester le webhook avec webhook.site
+
+1. Aller sur https://webhook.site
+2. Copier l'URL unique générée
+3. La coller dans **Test DISC → Paramètres → Webhook CRM**
+4. Faire un test DISC complet
+5. Voir le JSON reçu en temps réel sur webhook.site
+
+### Tester avec n8n en local
+
+**Lancement Docker** :
+```bash
+docker run -it --rm --name n8n -p 5678:5678 docker.n8n.io/n8nio/n8n
+```
+
+**Configuration** :
+1. Ouvrir http://localhost:5678
+2. New Workflow → nœud **Webhook** → POST → path: `disc-test`
+3. Copier l'URL : `http://localhost:5678/webhook/disc-test`
+4. La coller dans les paramètres du plugin
+5. **Execute Workflow** (mode écoute) → faire un test → voir le JSON
+6. Ajouter un nœud **Mautic** pour créer le contact automatiquement
+
+### Tags CRM
+
+Générés automatiquement et inclus dans le payload webhook.
+Préfixe configurable dans **Test DISC → Paramètres → Préfixe des tags**.
+
+| Tag | Condition | Exemple (préfixe: `disc`) |
+|-----|-----------|--------------------------|
+| `{prefix}` | Toujours | `disc` |
+| `{prefix}-{profil}` | Toujours | `disc-di` |
+| `{prefix}-d/i/s/c` | Score >= 60 | `disc-d`, `disc-i` |
+| `{prefix}-consistent` | Cohérence >= 70% | `disc-consistent` |
+| `{prefix}-suspect` | Cohérence < 50% | `disc-suspect` |
+
 ## Hooks WordPress
 
 ### Actions
@@ -380,7 +481,7 @@ disc_test_completed($contact_data, $scores, $profile_type)
 ```
 Déclenché après enregistrement résultat, avant email.
 
-**Use case** : Intégration CRM, webhooks, analytics
+**Use case** : Intégration CRM via Bit Integrations, code custom
 
 ### Filtres
 Aucun filtre exposé actuellement (ajout possible si besoin)

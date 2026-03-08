@@ -517,7 +517,58 @@ class DISC_Admin {
             </form>
             
             <hr>
-            
+
+            <h2><?php _e('Guide d\'intégration CRM', 'disc-test'); ?></h2>
+            <p><?php _e('Après chaque test complété, deux canaux se déclenchent simultanément :', 'disc-test'); ?></p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0;">
+
+                <div style="background:#f0f4ff;border-left:4px solid #667eea;padding:16px;border-radius:0 6px 6px 0;">
+                    <h3 style="margin-top:0;">📌 Canal 1 — Hook WordPress</h3>
+                    <p><strong>Pour :</strong> Bit Integrations (Pro), code custom</p>
+                    <p>Le hook <code>disc_test_completed</code> se déclenche automatiquement. Aucune URL à configurer.</p>
+                    <p><strong>Sur site pro :</strong> Bit Integrations → New Integration → Mautic<br>
+                    <a href="https://bit-integrations.com/wp-docs/actions/mautic-integrations/" target="_blank">Documentation Bit Integrations →</a></p>
+                </div>
+
+                <div style="background:#f0fff4;border-left:4px solid #22c55e;padding:16px;border-radius:0 6px 6px 0;">
+                    <h3 style="margin-top:0;">🔗 Canal 2 — HTTP Webhook</h3>
+                    <p><strong>Pour :</strong> n8n, Make, Zapier, webhook.site</p>
+                    <p>Renseignez l'URL ci-dessus. Un POST JSON est envoyé avec contact, scores et tags.</p>
+                    <p><strong>En local :</strong> <code>docker run -p 5678:5678 docker.n8n.io/n8nio/n8n</code><br>
+                    Puis créer un nœud Webhook dans n8n → copier l'URL → la coller ici.</p>
+                </div>
+
+            </div>
+
+            <details style="margin:16px 0;">
+                <summary style="cursor:pointer;font-weight:600;padding:8px 0;"><?php _e('📋 Voir le payload JSON envoyé au webhook', 'disc-test'); ?></summary>
+                <pre style="background:#1e1e1e;color:#d4d4d4;padding:16px;border-radius:6px;overflow-x:auto;margin-top:10px;font-size:12px;"><?php echo esc_html(json_encode(array(
+                    'email'             => 'john.doe@example.com',
+                    'first_name'        => 'John',
+                    'last_name'         => 'Doe',
+                    'company'           => 'Acme Corp',
+                    'position'          => 'Directeur',
+                    'profile_type'      => 'DI',
+                    'score_d'           => 88,
+                    'score_i'           => 100,
+                    'score_s'           => 0,
+                    'score_c'           => 12,
+                    'consistency_score' => 75.5,
+                    'completed_at'      => '2026-03-08T17:58:00+01:00',
+                    'tags'              => array(
+                        $tag_prefix,
+                        $tag_prefix . '-di',
+                        $tag_prefix . '-d',
+                        $tag_prefix . '-i',
+                        $tag_prefix . '-consistent',
+                    ),
+                ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
+                <p style="color:#666;font-size:12px;"><?php _e('💡 Pour voir un vrai payload, utilisez webhook.site : collez une URL de webhook.site dans le champ ci-dessus et faites un test DISC.', 'disc-test'); ?></p>
+            </details>
+
+            <hr>
+
             <h2><?php _e('Configuration de sécurité', 'disc-test'); ?></h2>
             <p><?php _e('Pour renforcer la sécurité, ajoutez cette ligne à votre fichier wp-config.php :', 'disc-test'); ?></p>
             <pre style="background: #f5f5f5; padding: 15px; border-left: 4px solid #667eea;">
