@@ -18,11 +18,9 @@ class DISC_Email {
      * Envoie l'email avec les résultats du test
      */
     public static function send_results_email($contact_data, $scores, $profile_type) {
-        $to = $contact_data['email'];
-        $subject = sprintf(
-            __('Votre profil DISC : %s', 'disc-test'),
-            $profile_type
-        );
+        $to             = $contact_data['email'];
+        $subject_tpl    = get_option('disc_email_subject', __('Votre profil DISC : {profil}', 'disc-test'));
+        $subject        = str_replace('{profil}', $profile_type, $subject_tpl);
         
         $profile_description = DISC_Renderer::get_profile_description($profile_type, $scores);
 

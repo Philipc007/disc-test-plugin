@@ -134,26 +134,9 @@ class DISC_Test_Plugin {
             return;
         }
         
-        // Enregistre le script du bloc
-        wp_register_script(
-            'disc-test-block',
-            DISC_TEST_PLUGIN_URL . 'build/block.js',
-            array('wp-blocks', 'wp-element', 'wp-editor', 'wp-components', 'wp-i18n'),
-            DISC_TEST_VERSION
-        );
-        
-        // Enregistre le style du bloc pour l'éditeur
-        wp_register_style(
-            'disc-test-block-editor',
-            DISC_TEST_PLUGIN_URL . 'assets/css/block-editor.css',
-            array('wp-edit-blocks'),
-            DISC_TEST_VERSION
-        );
-        
-        // Enregistre le bloc en pointant vers la même fonction de rendu que le shortcode
-        register_block_type('disc-test/test-block', array(
-            'editor_script' => 'disc-test-block',
-            'editor_style' => 'disc-test-block-editor',
+        // Enregistre le script du bloc uniquement si le fichier existe (build optionnel)
+        $block_js   = DISC_TEST_PLUGIN_DIR . 'build/block.js';
+        $block_args = array(
             'render_callback' => array('DISC_Renderer', 'render_test'),
             'attributes' => array(
                 'showTitle' => array(
@@ -169,7 +152,29 @@ class DISC_Test_Plugin {
                     'default' => ''
                 )
             )
-        ));
+        );
+
+        if (file_exists($block_js)) {
+            wp_register_script(
+                'disc-test-block',
+                DISC_TEST_PLUGIN_URL . 'build/block.js',
+                array('wp-blocks', 'wp-element', 'wp-editor', 'wp-components', 'wp-i18n'),
+                DISC_TEST_VERSION
+            );
+            $block_args['editor_script'] = 'disc-test-block';
+        }
+
+        // Enregistre le style du bloc pour l'éditeur
+        wp_register_style(
+            'disc-test-block-editor',
+            DISC_TEST_PLUGIN_URL . 'assets/css/block-editor.css',
+            array('wp-edit-blocks'),
+            DISC_TEST_VERSION
+        );
+        $block_args['editor_style'] = 'disc-test-block-editor';
+
+        // Enregistre le bloc en pointant vers la même fonction de rendu que le shortcode
+        register_block_type('disc-test/test-block', $block_args);
     }
     
     /**

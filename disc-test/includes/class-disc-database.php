@@ -55,7 +55,7 @@ class DISC_Database {
             total_time int(11) DEFAULT NULL COMMENT 'Temps total du test en secondes',
             ip_address varchar(45) DEFAULT NULL,
             user_agent text DEFAULT NULL,
-            consent_given tinyint(1) NOT NULL DEFAULT 1,
+            consent_given tinyint(1) NOT NULL DEFAULT 0,
             consent_timestamp datetime DEFAULT CURRENT_TIMESTAMP,
             completed_at datetime DEFAULT CURRENT_TIMESTAMP,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
@@ -246,7 +246,7 @@ class DISC_Database {
             $table,
             array(
                 'session_token' => $data['session_token'],
-                'email' => sanitize_email($data['email']),
+                'email' => DISC_Security::encrypt_email(sanitize_email($data['email'])),
                 'first_name' => sanitize_text_field($data['first_name']),
                 'last_name' => sanitize_text_field($data['last_name']),
                 'company' => sanitize_text_field($data['company']),

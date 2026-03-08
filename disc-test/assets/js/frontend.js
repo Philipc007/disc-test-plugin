@@ -522,8 +522,10 @@
      * Affiche un message d'erreur
      */
     function showError($container, message) {
-        $container.html('<p class="error">' + message + '</p>').fadeIn(300);
-        
+        $container.empty().append(
+            $('<p>', { class: 'error', text: message })
+        ).fadeIn(300);
+
         setTimeout(function() {
             $container.fadeOut(300);
         }, 5000);

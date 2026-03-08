@@ -18,13 +18,26 @@
   - URL depuis `get_option('disc_crm_webhook')`
   - Payload : contact + profil + scores + cohérence + timestamp ISO
 
-- [ ] **Tags CRM dans le webhook** (à implémenter)
+- [x] **Tags CRM dans le webhook** ✅
   - Tags en anglais pour compatibilité internationale
   - Tag fixe : `disc` (tous les leads)
   - Tag profil : `disc-di`, `disc-d`, etc.
   - Tag dimensions dominantes (score >= 60) : `disc-d`, `disc-i`, `disc-s`, `disc-c`
   - Tag qualité : `disc-consistent` (≥70%) / `disc-suspect` (<50%)
-  - Tags configurables depuis **Paramètres** du plugin
+  - Préfixe configurable depuis **Paramètres** du plugin
+
+### Corrections Audit Sécurité (2026-03-08)
+
+- [x] **Fix 1 — Consentement RGPD** ✅ : `isset()` remplacé par vérification de la valeur réelle (`absint() === 1`)
+- [x] **Fix 2 — Log pollution** ✅ : allowlist d'événements AJAX + traitement conditionnel `test_started` vs `question_answered`
+- [x] **Fix 3 — SSRF** ✅ : `wp_remote_post()` → `wp_safe_remote_post()` pour le webhook CRM
+- [x] **Fix 4 — Chiffrement email** ✅ : `encrypt_email()` réellement appelée dans `save_result()` (était manquante)
+- [x] **Fix 5 — DB schema** ✅ : `consent_given DEFAULT 0` (était DEFAULT 1)
+- [x] **Fix 6 — Déchiffrement admin** ✅ : `decrypt_email()` dans affichage, export CSV, renvoi email
+- [x] **Fix 7 — XSS confirm()** ✅ : `esc_js()` complet + `decrypt_email()` dans bouton "Renvoyer email"
+- [x] **Fix 8 — Email subject option** ✅ : `disc_email_subject` depuis `get_option()` avec placeholder `{profil}`
+- [x] **Fix 9 — XSS showError()** ✅ : `.html()` jQuery → `.empty().append($('<p>', {text: message}))`
+- [x] **Fix 10 — Gutenberg block.js** ✅ : vérification `file_exists()` avant enregistrement `editor_script`
 
 ### Tests Critiques
 
@@ -661,5 +674,5 @@ Aucun bug connu actuellement - À compléter après tests
 ---
 
 **Dernière mise à jour** : 2026-03-08
-**Status global** : 🟢 MVP complet — Tags CRM en cours
-**Prochaine étape** : Tags CRM configurables + déploiement production
+**Status global** : 🟢 MVP complet — Audit sécurité appliqué (10/10 fixes)
+**Prochaine étape** : Tests E2E + déploiement production

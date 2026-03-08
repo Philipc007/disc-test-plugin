@@ -70,7 +70,7 @@ class DISC_Admin {
                 date('d/m/Y H:i', strtotime($r['completed_at'])),
                 $r['first_name'],
                 $r['last_name'],
-                $r['email'],
+                DISC_Security::decrypt_email($r['email']),
                 $r['company'],
                 $r['position'],
                 $r['profile_type'],
@@ -155,7 +155,7 @@ class DISC_Admin {
 
             if ($result) {
                 $contact_data = array(
-                    'email'      => $result['email'],
+                    'email'      => DISC_Security::decrypt_email($result['email']),
                     'first_name' => $result['first_name'],
                     'last_name'  => $result['last_name'],
                     'company'    => $result['company'],
@@ -220,7 +220,7 @@ class DISC_Admin {
                             <tr>
                                 <td><?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($result['completed_at']))); ?></td>
                                 <td><?php echo esc_html($result['first_name'] . ' ' . $result['last_name']); ?></td>
-                                <td><?php echo esc_html($result['email']); ?></td>
+                                <td><?php echo esc_html(DISC_Security::decrypt_email($result['email'])); ?></td>
                                 <td><?php echo esc_html($result['company']); ?></td>
                                 <td><strong><?php echo esc_html($result['profile_type']); ?></strong></td>
                                 <td>
@@ -237,7 +237,7 @@ class DISC_Admin {
                                 <td>
                                     <a href="<?php echo esc_url($resend_url); ?>"
                                        class="button button-small"
-                                       onclick="return confirm('<?php echo esc_js(__('Renvoyer l\'email de résultats à ', 'disc-test') . $result['email'] . ' ?'); ?>')">
+                                       onclick="return confirm('<?php echo esc_js(__('Renvoyer l\'email de résultats à ', 'disc-test') . DISC_Security::decrypt_email($result['email']) . ' ?'); ?>')">
                                         <?php _e('Renvoyer email', 'disc-test'); ?>
                                     </a>
                                 </td>
@@ -459,7 +459,7 @@ class DISC_Admin {
             echo '<div class="notice notice-success is-dismissible"><p>' . __('Paramètres enregistrés.', 'disc-test') . '</p></div>';
         }
 
-        $email_subject = get_option('disc_email_subject', __('Votre profil DISC', 'disc-test'));
+        $email_subject = get_option('disc_email_subject', __('Votre profil DISC : {profil}', 'disc-test'));
         $crm_webhook   = get_option('disc_crm_webhook', '');
         $tag_prefix    = get_option('disc_tag_prefix', 'disc');
         
@@ -477,7 +477,7 @@ class DISC_Admin {
                         </th>
                         <td>
                             <input type="text" id="email_subject" name="email_subject" value="<?php echo esc_attr($email_subject); ?>" class="regular-text">
-                            <p class="description"><?php _e('Le sujet de l\'email envoyé aux participants.', 'disc-test'); ?></p>
+                            <p class="description"><?php _e('Le sujet de l\'email envoyé aux participants. Utilisez <code>{profil}</code> pour insérer le profil DISC (ex: DI, S…).', 'disc-test'); ?></p>
                         </td>
                     </tr>
                     

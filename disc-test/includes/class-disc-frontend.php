@@ -65,20 +65,31 @@ class DISC_Frontend {
     
     /**
      * Gère la soumission d'une réponse à une question
+     * Utilisé aussi pour logger le démarrage du test (event=test_started)
      */
     public static function handle_response_submission() {
-        // Vérifie le nonce
         DISC_Security::verify_ajax_nonce();
-        
-        // Log l'événement
-        DISC_Database::log_event('question_answered', array(
-            'question_id' => intval($_POST['question_id'] ?? 0),
-            'session_token' => sanitize_text_field($_POST['session_token'] ?? '')
-        ));
-        
-        wp_send_json_success(array(
-            'message' => __('Réponse enregistrée', 'disc-test')
-        ));
+
+        $allowed_events  = array('test_started', 'question_answered');
+        $event           = sanitize_key($_POST['event'] ?? 'question_answered');
+        $session_token   = sanitize_text_field(wp_unslash($_POST['session_token'] ?? ''));
+
+        if (!in_array($event, $allowed_events, true)) {
+            wp_send_json_error(array('message' => 'Événement non autorisé.'));
+        }
+
+        if ($event === 'test_started') {
+            DISC_Database::log_event('test_started', array(
+                'session_token' => $session_token
+            ), $session_token);
+        } else {
+            DISC_Database::log_event('question_answered', array(
+                'question_id'   => intval($_POST['question_id'] ?? 0),
+                'session_token' => $session_token
+            ), $session_token);
+        }
+
+        wp_send_json_success(array('message' => 'OK'));
     }
     
     /**
@@ -102,7 +113,7 @@ class DISC_Frontend {
             'last_name' => sanitize_text_field(wp_unslash($_POST['last_name'] ?? '')),
             'company' => sanitize_text_field(wp_unslash($_POST['company'] ?? '')),
             'position' => sanitize_text_field(wp_unslash($_POST['position'] ?? '')),
-            'consent' => isset($_POST['consent']) ? 1 : 0
+            'consent' => (!empty($_POST['consent']) && absint(wp_unslash($_POST['consent'])) === 1) ? 1 : 0
         );
         
         // Valide les données
@@ -238,7 +249,7 @@ class DISC_Frontend {
                 'tags'              => self::generate_crm_tags($profile_type, $scores, $consistency_score),
             );
 
-            wp_remote_post($webhook_url, array(
+            wp_safe_remote_post($webhook_url, array(
                 'headers'   => array('Content-Type' => 'application/json'),
                 'body'      => json_encode($payload),
                 'timeout'   => 5,
