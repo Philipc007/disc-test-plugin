@@ -361,7 +361,7 @@
                     'Conformité'
                 ],
                 datasets: [{
-                    label: 'Score',
+                    label: 'Tendance',
                     data: [
                         scores.D,
                         scores.I,
@@ -394,7 +394,7 @@
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return 'Score: ' + context.parsed.x + '/100';
+                                return 'Tendance : ' + context.parsed.x + '%';
                             }
                         }
                     }
@@ -402,10 +402,10 @@
                 scales: {
                     x: {
                         beginAtZero: true,
-                        max: 100,
+                        max: 60,
                         ticks: {
                             callback: function(value) {
-                                return value;
+                                return value + '%';
                             }
                         },
                         grid: {

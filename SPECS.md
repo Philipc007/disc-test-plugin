@@ -290,44 +290,83 @@ Styles preview bloc Gutenberg
 
 ### Calcul des Scores DISC
 
+> **v1.2 — Méthode ipsative alignée D4D** (remplace la normalisation min-max v1.0)
+
 **Entrées** : 28 réponses avec "most_like" et "least_like"
 
-**Logique** :
+**Étape 1 — Scoring brut ipsatif** :
 ```
 Pour chaque réponse :
-  scores[most_like] += 2
-  scores[least_like] -= 1
+  scores[most_like]  += 2      // "Le plus moi"
+  scores[least_like] -= 1      // "Le moins moi"
+  scores[neutre_1]   += 0.5    // dimension non choisie
+  scores[neutre_2]   += 0.5    // dimension non choisie
 
-Normalisation 0-100 :
-  min = min(scores)
-  max = max(scores)
-  range = max - min
-  
-  Pour chaque dimension :
-    scores[dim] = ((scores[dim] - min) / range) * 100
+Propriété : somme par question = +2 (ipsatif)
+Somme totale sur 28 questions : 28 × 2 = 56 points
 ```
 
-**Résultat** : 4 scores entre 0 et 100
+**Étape 2 — Conversion en scores relatifs (%)** :
+```
+total = somme des 4 scores bruts  (vaut toujours 56)
+
+Pour chaque dimension :
+  score_relatif = round((score_brut / total) * 100)
+
+→ Les 4 scores relatifs totalisent 100%
+```
+
+**Exemple** : scores bruts D=22, I=16, S=10, C=8 (total=56)
+- D = round(22/56 × 100) = **39%**
+- I = round(16/56 × 100) = **29%**
+- S = round(10/56 × 100) = **18%**
+- C = round(8/56 × 100)  = **14%**
+
+**Résultat** : 4 scores relatifs en %, jamais de 0 ou 100 mécanique.
+
+**Vocabulaire** : "Tendances" (pas "scores") — reflète la nature relative de la mesure.
 
 ### Détermination du Profil
 
+> Logique basée sur les **écarts entre scores relatifs** (remplace le seuil fixe >= 60 v1.0)
+
+**Seuils configurables** (dans wp-config.php) :
+```php
+define('DISC_SEUIL_DOUBLE',    5);   // Écart max top1-top2 pour profil double (en points %)
+define('DISC_SEUIL_EQUILIBRE', 4);   // Écart-type max des 4 scores pour profil équilibré
+```
+
 **Logique** :
 ```
-Trier scores par ordre décroissant
+Trier les 4 scores par ordre décroissant → [score_1, score_2, score_3, score_4]
 
-Si score_1 >= 60 :
-  profil = dimension_1
-  
-  Si score_2 >= 60 :
-    profil += dimension_2
-Sinon :
-  profil = "DISC" (équilibré)
+1. Calculer l'écart-type des 4 scores
+   Si écart-type < SEUIL_EQUILIBRE → profil = "DISC"
+
+2. ecart_1_2 = score_1 - score_2
+   ecart_2_3 = score_2 - score_3
+
+   Si ecart_1_2 > SEUIL_DOUBLE
+     → Profil simple (ex: "D")
+
+   Sinon si ecart_2_3 <= SEUIL_DOUBLE
+     → Profil triple (ex: "DIS")
+
+   Sinon
+     → Profil double (ex: "DI")
+
+3. Retourner les lettres dans l'ordre canonique D-I-S-C
 ```
 
 **Exemples** :
-- D=85, I=72, S=45, C=30 → Profil "DI"
-- D=92, I=45, S=40, C=35 → Profil "D"
-- D=55, I=58, S=52, C=50 → Profil "DISC"
+- D=39%, I=29%, S=18%, C=14% → écart 1-2 = 10 > 5 → Profil **"D"**
+- D=35%, I=32%, S=20%, C=13% → écart 1-2 = 3 ≤ 5, écart 2-3 = 12 > 5 → Profil **"DI"**
+- D=30%, I=28%, S=26%, C=16% → écart 1-2 = 2 ≤ 5, écart 2-3 = 2 ≤ 5 → Profil **"DIS"**
+- D=27%, I=26%, S=25%, C=22% → écart-type ≈ 1.8 < 4 → Profil **"DISC"**
+
+**Tags CRM** : dimension significative si score >= 30% (seuil adapté à l'échelle relative)
+
+> Voir aussi : `prompt-scoring-disc-v2.md` pour le détail complet de la refonte.
 
 ### Score de Cohérence
 

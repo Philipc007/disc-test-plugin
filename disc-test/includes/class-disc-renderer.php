@@ -459,30 +459,52 @@ class DISC_Renderer {
     }
     
     /**
-     * Détermine le profil dominant basé sur les scores
+     * Détermine le profil dominant basé sur les scores relatifs (%)
+     *
+     * Logique ipsative alignée D4D :
+     *   - Profil équilibré (DISC) : écart-type des 4 scores < SEUIL_EQUILIBRE (défaut 4)
+     *   - Profil simple (D) : écart top1-top2 > SEUIL_DOUBLE (défaut 5)
+     *   - Profil triple (DIS) : écart top1-top2 <= SEUIL_DOUBLE ET écart top2-top3 <= SEUIL_DOUBLE
+     *   - Profil double (DI) : tous les autres cas
+     *
+     * Constantes configurables dans wp-config.php :
+     *   define('DISC_SEUIL_DOUBLE',    5);   // points % d'écart max pour profil double
+     *   define('DISC_SEUIL_EQUILIBRE', 4);   // écart-type max pour profil équilibré
      */
     public static function determine_profile_type($scores) {
-        // Trie les scores par valeur décroissante
+        $seuil_double    = defined('DISC_SEUIL_DOUBLE')    ? DISC_SEUIL_DOUBLE    : 5;
+        $seuil_equilibre = defined('DISC_SEUIL_EQUILIBRE') ? DISC_SEUIL_EQUILIBRE : 4;
+
         arsort($scores);
-        $dimensions = array_keys($scores);
+        $dims = array_keys($scores);
+        $vals = array_values($scores);
 
-        $primary   = $dimensions[0];
-        $secondary = $dimensions[1];
+        // Calcule l'écart-type pour détecter un profil équilibré
+        $mean     = array_sum($vals) / 4;
+        $variance = array_sum(array_map(function($v) use ($mean) {
+            return pow($v - $mean, 2);
+        }, $vals)) / 4;
+        $std_dev = sqrt($variance);
 
-        $selected = array();
-
-        if ($scores[$primary] >= 60) {
-            $selected[] = $primary;
-
-            if ($scores[$secondary] >= 60) {
-                $selected[] = $secondary;
-            }
-        } else {
+        if ($std_dev < $seuil_equilibre) {
             return 'DISC';
         }
 
-        // Toujours retourner les lettres dans l'ordre canonique D-I-S-C
-        // pour matcher les clés de get_profile_description()
+        $ecart_1_2 = $vals[0] - $vals[1];
+        $ecart_2_3 = $vals[1] - $vals[2];
+
+        if ($ecart_1_2 > $seuil_double) {
+            // La dimension 1 se détache nettement → profil simple
+            $selected = array($dims[0]);
+        } elseif ($ecart_2_3 <= $seuil_double) {
+            // Les 3 premières sont proches → profil triple
+            $selected = array($dims[0], $dims[1], $dims[2]);
+        } else {
+            // Les 2 premières sont proches → profil double
+            $selected = array($dims[0], $dims[1]);
+        }
+
+        // Retourne les lettres dans l'ordre canonique D-I-S-C
         $disc_order = array('D' => 0, 'I' => 1, 'S' => 2, 'C' => 3);
         usort($selected, function($a, $b) use ($disc_order) {
             return $disc_order[$a] - $disc_order[$b];

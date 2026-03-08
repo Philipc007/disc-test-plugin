@@ -82,28 +82,29 @@ class DISC_Email {
                         <p><?php echo esc_html($profile_description['subtitle']); ?></p>
                     </div>
                     
-                    <h3>Vos scores détaillés</h3>
+                    <h3>Vos tendances DISC</h3>
                     <div class="scores">
                         <div class="score-row">
                             <div class="score-label">Dominance (D):</div>
-                            <div class="score-value"><?php echo $scores['D']; ?>/100</div>
+                            <div class="score-value"><?php echo $scores['D']; ?>%</div>
                         </div>
                         <div class="score-row">
                             <div class="score-label">Influence (I):</div>
-                            <div class="score-value"><?php echo $scores['I']; ?>/100</div>
+                            <div class="score-value"><?php echo $scores['I']; ?>%</div>
                         </div>
                         <div class="score-row">
                             <div class="score-label">Stabilité (S):</div>
-                            <div class="score-value"><?php echo $scores['S']; ?>/100</div>
+                            <div class="score-value"><?php echo $scores['S']; ?>%</div>
                         </div>
                         <div class="score-row">
                             <div class="score-label">Conformité (C):</div>
-                            <div class="score-value"><?php echo $scores['C']; ?>/100</div>
+                            <div class="score-value"><?php echo $scores['C']; ?>%</div>
                         </div>
                     </div>
-                    
+
                     <h3>Votre graphique DISC</h3>
-                    <img src="<?php echo esc_url($chart_url); ?>" alt="Graphique DISC" width="500" style="max-width:100%;display:block;margin:0 auto 20px;">
+                    <img src="<?php echo esc_url($chart_url); ?>" alt="Graphique DISC" width="500" style="max-width:100%;display:block;margin:0 auto 10px;">
+                    <p style="text-align:center;color:#666;font-size:12px;margin-bottom:20px;"><em>Les valeurs représentent la répartition de vos tendances comportementales. Elles totalisent 100%.</em></p>
 
                     <h3>Votre profil</h3>
                     <p><?php echo esc_html($profile_description['description']); ?></p>

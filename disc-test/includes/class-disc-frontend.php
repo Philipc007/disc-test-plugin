@@ -45,10 +45,10 @@ class DISC_Frontend {
         // Tag profil complet (ex: disc-di, disc-s, disc-disc)
         $tags[] = $prefix . '-' . strtolower($profile_type);
 
-        // Tags par dimension dominante (score >= 60)
+        // Tags par dimension significative (score >= 30% dans l'échelle relative)
         $dimensions = array('D', 'I', 'S', 'C');
         foreach ($dimensions as $dim) {
-            if ($scores[$dim] >= 60) {
+            if ($scores[$dim] >= 30) {
                 $tags[] = $prefix . '-' . strtolower($dim);
             }
         }
@@ -199,29 +199,38 @@ class DISC_Frontend {
             }
         }
 
-        // Calcule les scores DISC
-        $scores         = array('D' => 0, 'I' => 0, 'S' => 0, 'C' => 0);
+        // Calcule les scores DISC — méthode ipsative alignée D4D
+        // Chaque question distribue 2 points : +2 (plus moi), -1 (moins moi), +0.5 × 2 (neutres)
+        // Somme totale sur 28 questions : 28 × 2 = 56 points entre les 4 axes
+        $scores         = array('D' => 0.0, 'I' => 0.0, 'S' => 0.0, 'C' => 0.0);
+        $all_dimensions = array('D', 'I', 'S', 'C');
         $response_times = array();
 
         foreach ($responses as $response) {
             $most_like  = strtoupper(sanitize_text_field($response['most_like'] ?? ''));
             $least_like = strtoupper(sanitize_text_field($response['least_like'] ?? ''));
 
-            // +2 points pour "le plus", -1 point pour "le moins"
-            $scores[$most_like] += 2;
+            $scores[$most_like]  += 2;
             $scores[$least_like] -= 1;
+
+            // +0.5 pour chacune des deux dimensions non choisies
+            foreach (array_diff($all_dimensions, array($most_like, $least_like)) as $neutral) {
+                $scores[$neutral] += 0.5;
+            }
 
             $response_times[] = floatval($response['response_time'] ?? 0);
         }
-        
-        // Normalise les scores entre 0 et 100
-        $min_score = min($scores);
-        $max_score = max($scores);
-        $range = $max_score - $min_score;
-        
-        if ($range > 0) {
+
+        // Convertit en scores relatifs (% du total — la somme des 4 vaut ~100)
+        $total_score = array_sum($scores);
+        if ($total_score > 0) {
             foreach ($scores as $dim => $score) {
-                $scores[$dim] = round((($score - $min_score) / $range) * 100);
+                $scores[$dim] = round(($score / $total_score) * 100);
+            }
+        } else {
+            // Cas edge théoriquement impossible avec les neutres à +0.5
+            foreach ($scores as $dim => $score) {
+                $scores[$dim] = 25;
             }
         }
         
