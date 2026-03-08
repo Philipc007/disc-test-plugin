@@ -26,6 +26,15 @@
   - Tag qualité : `disc-consistent` (≥70%) / `disc-suspect` (<50%)
   - Préfixe configurable depuis **Paramètres** du plugin
 
+### Tests E2E à effectuer (GO depuis 2026-03-08)
+
+- [ ] Parcours complet visiteur (test → résultats → email reçu)
+- [ ] BDD : 1 ligne `disc_results`, N lignes `disc_responses`, `consent_given` correct, `session_token` cohérent
+- [ ] Email : sujet configuré, graphique visible, contenu correct
+- [ ] Webhook : payload JSON reçu dans n8n, tags présents, champs `source`/`test_version`/`locale` présents
+- [ ] Admin : listing lisible, email déchiffré, renvoi email, export CSV
+- [ ] Cas d'erreur : webhook URL vide, SMTP off, soumission incomplète, double tentative
+
 ### Corrections Audit Sécurité (2026-03-08)
 
 - [x] **Fix 1 — Consentement RGPD** ✅ : `isset()` remplacé par vérification de la valeur réelle (`absint() === 1`)
@@ -577,6 +586,15 @@
 - ⏳ Suivre le plan de migration phase par phase
 
 
+
+## 🩺 Phase 1.5 : Observabilité (Backlog pré-prod)
+
+- [ ] **Log intention webhook** avant `wp_safe_remote_post()` : enregistrer en DB que l'envoi a été tenté, avec l'URL de destination — facilite le diagnostic des pertes CRM sans retry bloquant
+- [ ] **Page "Santé du plugin"** dans l'admin :
+  - Dernier email envoyé / échoué (depuis `disc_events`)
+  - Dernier webhook tenté (URL + timestamp)
+  - Nombre de réponses attendues vs enregistrées
+  - Version du plugin + état de la clé de chiffrement
 
 ## 🔧 Maintenance Continue
 
