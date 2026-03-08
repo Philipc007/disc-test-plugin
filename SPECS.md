@@ -4,9 +4,9 @@
 
 Plugin WordPress pour administrer un test DISC psychométrique comme lead magnet B2B pour dirigeants et managers d'entreprises.
 
-**Version** : 1.0.0  
-**Status** : 95% complet - En test  
-**Stack** : WordPress 5.8+, PHP 7.4+, MySQL 5.7+, JavaScript ES6, Chart.js 3.9.1
+**Version** : 1.1.0
+**Status** : MVP complet — en déploiement
+**Stack** : WordPress 5.8+, PHP 7.4+, MySQL 5.7+, JavaScript ES6, Chart.js 3.9.1, QuickChart.io
 
 ## Architecture
 
@@ -487,22 +487,29 @@ Non effectués (recommandé avant lancement public)
 Plugin : WP Mail SMTP ou similaire
 Raison : Meilleure délivrabilité emails
 
+## Fonctionnalités Implémentées (v1.1)
+
+- ✅ Export CSV (Date+heure, tous champs, BOM UTF-8, séparateur `;` pour Excel FR)
+- ✅ Webhook CRM — POST JSON non-bloquant vers URL configurable dans les paramètres
+- ✅ Graphique dans l'email — image statique via QuickChart.io (compatible tous clients email)
+- ✅ Renvoi d'email depuis l'admin par résultat (avec confirmation + log audit)
+- ✅ Édition des questions depuis l'admin
+- ✅ Partage LinkedIn — modale copier/coller (API LinkedIn ne supporte plus le pré-remplissage)
+- ✅ Tags CRM dans le webhook — configurables dans les paramètres (à venir)
+
 ## Limitations Connues
 
-1. **Pas de PDF** - Email HTML seulement (phase 1)
-2. **Export CSV manuel** - Bouton présent, fonction à finaliser
-3. **Bloc Gutenberg non compilé** - Nécessite npm build (optionnel)
-4. **Webhook CRM manuel** - Hook exposé, intégration à faire
-5. **Pas de traductions** - Français uniquement
-6. **Pas de cache** - Compatible mais pas implémenté
-7. **Admin.js vide** - Pas de JS admin pour l'instant
+1. **Pas de PDF** - Email HTML + graphique image (phase 1)
+2. **Bloc Gutenberg non compilé** - Nécessite npm build (optionnel)
+3. **Pas de traductions** - Français uniquement
+4. **Pas de cache** - Compatible mais pas implémenté
+5. **Admin.js vide** - Pas de JS admin pour l'instant
 
 ## Roadmap
 
-### v1.1 (Post-lancement)
+### v1.2 (Post-lancement)
+- Tags CRM configurables dans les paramètres
 - Génération PDF résultats
-- Export CSV automatique
-- Webhook Mautic intégré
 - Compilation bloc Gutenberg
 
 ### v1.2
@@ -516,6 +523,290 @@ Raison : Meilleure délivrabilité emails
 - API REST
 - Intégrations natives (HubSpot, Salesforce)
 - Rapports avancés avec charts
+
+
+## Architecture Future & Vision Évolutive
+
+### Vision Stratégique (Horizon 6-12 mois)
+
+Le plugin DISC Test actuel est conçu comme un **MVP monolithique** (un seul test, un seul algorithme, une seule langue). La vision à moyen terme est de transformer ce plugin en un **framework modulaire de tests psychométriques** permettant de gérer plusieurs types de tests, algorithmes et langues depuis le même moteur.
+
+### Objectifs de la Modularisation Future
+
+**Business** :
+- Offre freemium : DISC Express (5 min) gratuit → DISC Standard (10 min) → DISC Pro (50 min) payant
+- Verticales métier : DISC RH, DISC Commercial, DISC Management
+- Expansion internationale : FR, EN, ES
+- Licensing : Vendre le framework à d'autres coachs/consultants
+
+**Technique** :
+- Réutiliser le moteur de capture de leads pour tous les tests
+- Ajouter de nouveaux tests sans dupliquer le code
+- Gérer plusieurs algorithmes de scoring
+- Support multi-langue natif
+
+### Architecture Cible (v2.0)
+
+```
+Moteur de Test Psychométrique (Core)
+├── Test Engine (réutilisable)
+│   ├── Lead Capture
+│   ├── Question Rendering
+│   ├── Progress Tracking
+│   └── Results Display
+├── Test Kits (modules interchangeables)
+│   ├── disc-express/
+│   │   ├── config.json (10 questions, 5 min)
+│   │   ├── questions-fr.json
+│   │   ├── questions-en.json
+│   │   ├── algorithm.php
+│   │   └── profiles.json
+│   ├── disc-standard/          ← MVP actuel
+│   │   ├── config.json (28 questions, 10 min)
+│   │   ├── questions-fr.json
+│   │   ├── algorithm.php
+│   │   └── profiles.json
+│   └── disc-pro/
+│       ├── config.json (50 questions + secteur)
+│       └── ...
+├── Algorithms (pluggables)
+│   ├── disc-classic.php (+2/-1 scoring)
+│   ├── disc-weighted.php (pondération avancée)
+│   └── custom-algorithms/
+└── Languages
+    └── i18n standard WordPress
+```
+
+### Structure Base de Données Future
+
+```sql
+-- Table des kits de tests (v2.0)
+CREATE TABLE wp_disc_test_kits (
+    id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    duration INT COMMENT 'Durée estimée en minutes',
+    question_count INT,
+    algorithm VARCHAR(50),
+    config LONGTEXT COMMENT 'JSON: questions, profils, options',
+    pricing ENUM('free', 'premium') DEFAULT 'free',
+    active TINYINT(1) DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Modification table résultats (v2.0)
+ALTER TABLE wp_disc_results 
+ADD COLUMN test_kit_id VARCHAR(50) DEFAULT 'disc-standard' AFTER id,
+ADD COLUMN test_version VARCHAR(20) DEFAULT '1.0' AFTER test_kit_id,
+ADD KEY test_kit_id (test_kit_id);
+
+-- Table des questions devient générique (v2.0)
+ALTER TABLE wp_disc_questions
+ADD COLUMN test_kit_id VARCHAR(50) DEFAULT 'disc-standard' AFTER id,
+ADD KEY test_kit_id (test_kit_id);
+```
+
+### Principes de Conception pour Faciliter l'Évolution
+
+#### 1. Séparation des Préoccupations
+
+**À respecter dès maintenant (v1.0)** :
+- ✅ Questions dans une table séparée (déjà fait)
+- ✅ Algorithme dans des méthodes isolées (déjà fait)
+- ✅ Descriptions de profils dans des structures de données (déjà fait)
+
+**À améliorer progressivement** :
+- 🔄 Externaliser les questions dans un fichier JSON (facilite ajout langues)
+- 🔄 Encapsuler l'algorithme dans une interface abstraite
+- 🔄 Rendre les profils configurables par test
+
+#### 2. Configuration vs Hard-coding
+
+**Actuellement** : 
+- Questions en BDD ✅
+- Algorithme hardcodé dans le code PHP ⚠️
+- Profils hardcodés dans le code PHP ⚠️
+
+**Objectif v2.0** :
+- Questions en JSON par kit/langue
+- Algorithmes en classes pluggables
+- Profils en JSON par kit/langue
+
+#### 3. Extensibilité
+
+**Hooks WordPress à exposer (v2.0)** :
+```php
+// Filtrer les questions avant affichage
+apply_filters('disc_test_questions', $questions, $test_kit_id);
+
+// Filtrer l'algorithme de calcul
+apply_filters('disc_test_algorithm', $algorithm, $test_kit_id);
+
+// Filtrer les profils
+apply_filters('disc_test_profiles', $profiles, $test_kit_id);
+
+// Action après génération résultats
+do_action('disc_test_results_generated', $result, $test_kit_id);
+```
+
+### Plan de Migration v1.0 → v2.0
+
+#### Phase 1 : Préparation (v1.1 - 1-2 jours)
+
+**Changements mineurs compatibles v1.0** :
+- Ajouter `test_version` dans wp_disc_results
+- Créer dossier `/data/test-kits/disc-standard/`
+- Exporter questions actuelles en JSON
+- Documenter l'algorithme actuel
+
+**Impact** : Zéro sur fonctionnement actuel, pose les bases pour v2.0
+
+#### Phase 2 : Abstraction du Moteur (v1.5 - 1 semaine)
+
+**Refactoring sans changement fonctionnel** :
+- Créer `class-test-engine.php` (moteur générique)
+- Migrer logique de `DISC_Renderer` vers le moteur
+- Créer interface `Test_Algorithm`
+- Implémenter `DISC_Classic_Algorithm` (actuel)
+
+**Impact** : Aucun pour l'utilisateur final, prêt pour multi-tests
+
+#### Phase 3 : Multi-kits (v2.0 - 1-2 semaines)
+
+**Nouveaux composants** :
+- Table `wp_disc_test_kits`
+- Interface admin "Kits de Tests"
+- Loader dynamique de kits
+- Sélecteur de kit dans shortcode : `[disc_test kit="disc-express"]`
+
+**Impact** : Activation de plusieurs tests simultanés
+
+### Décisions d'Architecture pour v1.0 (MVP Actuel)
+
+#### Ce qu'on FAIT maintenant :
+- ✅ Garder l'architecture actuelle simple et fonctionnelle
+- ✅ Lancer rapidement pour valider le concept
+- ✅ Éviter la sur-ingénierie prématurée
+
+#### Ce qu'on PRÉVOIT pour faciliter v2.0 :
+- 🔄 Commenter clairement les zones qui seront modularisées
+- 🔄 Utiliser des noms de variables/fonctions génériques (ex: `test_type` plutôt que `disc_type`)
+- 🔄 Structurer le code en pensant "test" plutôt que "DISC uniquement"
+
+#### Ce qu'on ÉVITE :
+- ❌ Hardcoder "DISC" partout (préférer "test", "assessment", etc.)
+- ❌ Couples forts entre composants (favoriser injection de dépendances)
+- ❌ Logique métier dans les vues (séparer présentation/logique)
+
+### Critères de Déclenchement pour v2.0
+
+**NE PAS commencer la modularisation AVANT d'avoir** :
+- [ ] 100+ tests complétés en production
+- [ ] Feedback terrain sur le besoin d'autres versions
+- [ ] Demande concrète pour d'autres langues
+- [ ] Validation du ROI du MVP actuel
+
+**COMMENCER la modularisation SI** :
+- ✅ Demandes fréquentes pour version courte/longue
+- ✅ Opportunité de licensing identifiée
+- ✅ Expansion internationale validée
+- ✅ Budget dev disponible (3-4 semaines)
+
+### Exemples de Kits Futurs
+
+**DISC Express** (Lead Magnet agressif)
+- 10 questions à choix forcé
+- 3-5 minutes
+- Profils simplifiés (4 types purs : D, I, S, C)
+- Gratuit, CTA fort vers DISC Standard
+
+**DISC Standard** (MVP actuel)
+- 28 questions à choix forcé
+- 8-10 minutes
+- 12 profils détaillés
+- Gratuit, CTA vers D4D/Coaching
+
+**DISC Pro** (Premium)
+- 50 questions + contexte métier
+- 15-20 minutes
+- 24 profils ultra-détaillés
+- Payant (47-97€)
+- Rapport PDF téléchargeable
+
+**DISC RH** (Verticale)
+- 28 questions orientées recrutement
+- Scoring adapté aux soft skills
+- Profils avec recommandations RH
+
+**Leadership 360** (Nouveau test)
+- Évaluation multi-sources
+- Autre algorithme de calcul
+- Réutilise le même moteur
+
+### Notes pour les Développeurs
+
+**Si vous travaillez sur le MVP actuel (v1.0)** :
+- Concentrez-vous sur faire fonctionner le test DISC Standard
+- Ne sur-architecturez pas pour l'instant
+- Mais gardez en tête la vision modulaire dans vos choix de nommage
+
+**Si vous travaillez sur v2.0 (future)** :
+- Lisez d'abord cette section complète
+- Étudiez le code v1.0 pour comprendre ce qui doit être abstrait
+- Suivez le plan de migration Phase par Phase
+- Testez la rétrocompatibilité à chaque étape
+
+### Ressources et Références
+
+**Patterns architecturaux pertinents** :
+- Strategy Pattern (pour algorithmes interchangeables)
+- Factory Pattern (pour création de kits de tests)
+- Plugin Architecture (pour extensibilité)
+
+**Inspirations** :
+- WooCommerce (produits configurables)
+- Gravity Forms (formulaires modulaires)
+- Advanced Custom Fields (champs personnalisables)
+
+### Estimation Effort Total
+
+| Phase | Difficulté | Temps Dev | Temps Test | Impact MVP |
+|-------|-----------|-----------|------------|------------|
+| v1.0 MVP | Faible | ✅ Fait | 1 jour | Production |
+| v1.1 Préparation | Faible | 1-2 jours | 2h | Aucun |
+| v1.5 Abstraction | Moyenne | 1 semaine | 2 jours | Aucun |
+| v2.0 Multi-kits | Élevée | 2 semaines | 3 jours | Nouveaux tests |
+
+**Total v1.0 → v2.0** : 3-4 semaines de développement
+
+### Validation Business Avant v2.0
+
+**Métriques à atteindre avec v1.0** :
+- [ ] 100+ leads capturés
+- [ ] Taux de completion > 70%
+- [ ] Cohérence moyenne > 65%
+- [ ] Taux email ouvert > 40%
+- [ ] 10+ demandes explicites pour version courte/longue
+
+**ROI attendu v2.0** :
+- Acquisition : +50% de leads (version express)
+- Conversion : +20% vers offres premium (parcours progressif)
+- Expansion : Nouveaux marchés (EN/ES)
+- Revenus : Licensing à d'autres coachs
+
+---
+
+## Conclusion pour Claude Code
+
+**En développant le MVP actuel** :
+- ✅ Priorisez la simplicité et la rapidité
+- ✅ Mais pensez "test générique" dans vos noms de variables
+- ✅ Commentez les zones qui seront modularisées
+- ✅ Documentez les algorithmes clairement
+
+**Cette vision est un guide, pas une contrainte immédiate.**
+
+Le succès de v1.0 validera (ou invalidera) le besoin de v2.0.
 
 ## Support & Maintenance
 

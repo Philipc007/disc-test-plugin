@@ -218,7 +218,7 @@ class DISC_Admin {
                             $color = $consistency >= 70 ? 'green' : ($consistency >= 50 ? 'orange' : 'red');
                             ?>
                             <tr>
-                                <td><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($result['completed_at']))); ?></td>
+                                <td><?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($result['completed_at']))); ?></td>
                                 <td><?php echo esc_html($result['first_name'] . ' ' . $result['last_name']); ?></td>
                                 <td><?php echo esc_html($result['email']); ?></td>
                                 <td><?php echo esc_html($result['company']); ?></td>
