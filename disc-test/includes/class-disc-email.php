@@ -25,7 +25,31 @@ class DISC_Email {
         );
         
         $profile_description = DISC_Renderer::get_profile_description($profile_type, $scores);
-        
+
+        // Génère l'URL du graphique via QuickChart.io (image statique, compatible email)
+        $chart_config = json_encode(array(
+            'type' => 'horizontalBar',
+            'data' => array(
+                'labels'   => array('Dominance (D)', 'Influence (I)', 'Stabilité (S)', 'Conformité (C)'),
+                'datasets' => array(array(
+                    'data'            => array($scores['D'], $scores['I'], $scores['S'], $scores['C']),
+                    'backgroundColor' => array('#dc2626', '#eab308', '#22c55e', '#3b82f6'),
+                ))
+            ),
+            'options' => array(
+                'legend'  => array('display' => false),
+                'scales'  => array(
+                    'xAxes' => array(array('ticks' => array('min' => 0, 'max' => 100))),
+                    'yAxes' => array(array('gridLines' => array('display' => false)))
+                ),
+                'plugins' => array('datalabels' => array(
+                    'anchor' => 'end', 'align' => 'right',
+                    'formatter' => "function(v){return v+'/100';}"
+                ))
+            )
+        ));
+        $chart_url = 'https://quickchart.io/chart?w=500&h=200&c=' . urlencode($chart_config);
+
         // Construit le message HTML
         ob_start();
         ?>
@@ -80,6 +104,9 @@ class DISC_Email {
                         </div>
                     </div>
                     
+                    <h3>Votre graphique DISC</h3>
+                    <img src="<?php echo esc_url($chart_url); ?>" alt="Graphique DISC" width="500" style="max-width:100%;display:block;margin:0 auto 20px;">
+
                     <h3>Votre profil</h3>
                     <p><?php echo esc_html($profile_description['description']); ?></p>
                     

@@ -25,8 +25,69 @@ class DISC_Admin {
     
     private function __construct() {
         add_action('admin_menu', array($this, 'add_admin_menu'));
+        add_action('admin_init', array($this, 'handle_export'));
     }
     
+    /**
+     * Gère l'export CSV des résultats
+     */
+    public function handle_export() {
+        if (!isset($_GET['page'], $_GET['action']) ||
+            $_GET['page'] !== 'disc-test' ||
+            $_GET['action'] !== 'export') {
+            return;
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Permissions insuffisantes.', 'disc-test'));
+        }
+
+        check_admin_referer('disc_export_csv');
+
+        $results = DISC_Database::get_all_results(9999, 0);
+
+        $filename = 'disc-resultats-' . date('Y-m-d') . '.csv';
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        $output = fopen('php://output', 'w');
+
+        // BOM UTF-8 pour Excel
+        fputs($output, "\xEF\xBB\xBF");
+
+        // En-têtes colonnes
+        fputcsv($output, array(
+            'Date', 'Prénom', 'Nom', 'Email', 'Entreprise', 'Poste',
+            'Profil', 'Score D', 'Score I', 'Score S', 'Score C',
+            'Cohérence (%)', 'Temps moyen/question (s)', 'Temps total (s)'
+        ), ';');
+
+        foreach ($results as $r) {
+            fputcsv($output, array(
+                date('d/m/Y H:i', strtotime($r['completed_at'])),
+                $r['first_name'],
+                $r['last_name'],
+                $r['email'],
+                $r['company'],
+                $r['position'],
+                $r['profile_type'],
+                $r['score_d'],
+                $r['score_i'],
+                $r['score_s'],
+                $r['score_c'],
+                round($r['consistency_score'], 1),
+                round($r['average_response_time'], 1),
+                $r['total_time']
+            ), ';');
+        }
+
+        fclose($output);
+        exit;
+    }
+
     /**
      * Ajoute les pages d'administration
      */
@@ -187,7 +248,7 @@ class DISC_Admin {
             </table>
 
             <p>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=disc-test&action=export')); ?>" class="button">
+                <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=disc-test&action=export'), 'disc_export_csv')); ?>" class="button">
                     <?php _e('Exporter en CSV', 'disc-test'); ?>
                 </a>
             </p>

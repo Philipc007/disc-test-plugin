@@ -180,8 +180,34 @@ class DISC_Frontend {
         // Envoie l'email avec les résultats
         DISC_Email::send_results_email($contact_data, $scores, $profile_type);
         
-        // Intégration CRM (si configurée)
+        // Intégration CRM — hook WordPress pour extensions tierces
         do_action('disc_test_completed', $contact_data, $scores, $profile_type);
+
+        // Webhook CRM (URL configurée dans les paramètres du plugin)
+        $webhook_url = get_option('disc_crm_webhook', '');
+        if (!empty($webhook_url)) {
+            $payload = array(
+                'email'             => $contact_data['email'],
+                'first_name'        => $contact_data['first_name'],
+                'last_name'         => $contact_data['last_name'],
+                'company'           => $contact_data['company'],
+                'position'          => $contact_data['position'],
+                'profile_type'      => $profile_type,
+                'score_d'           => $scores['D'],
+                'score_i'           => $scores['I'],
+                'score_s'           => $scores['S'],
+                'score_c'           => $scores['C'],
+                'consistency_score' => $consistency_score,
+                'completed_at'      => current_time('c'),
+            );
+
+            wp_remote_post($webhook_url, array(
+                'headers'   => array('Content-Type' => 'application/json'),
+                'body'      => json_encode($payload),
+                'timeout'   => 5,
+                'blocking'  => false, // Non-bloquant : n'attend pas la réponse
+            ));
+        }
         
         // Retourne les résultats
         $profile_description = DISC_Renderer::get_profile_description($profile_type, $scores);
