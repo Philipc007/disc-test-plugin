@@ -120,12 +120,18 @@ class DISC_Security {
             array(19, 25)  // Relations/Rapport
         );
         
-        $total_pairs = count($consistency_pairs);
+        // Indexe les réponses par question_id pour un accès robuste (indépendant de l'ordre)
+        $indexed = array();
+        foreach ($responses as $response) {
+            $indexed[(int) ($response['question_id'] ?? 0)] = $response;
+        }
+
+        $total_pairs      = count($consistency_pairs);
         $consistent_pairs = 0;
-        
+
         foreach ($consistency_pairs as $pair) {
-            $q1 = $responses[$pair[0] - 1] ?? null;
-            $q2 = $responses[$pair[1] - 1] ?? null;
+            $q1 = $indexed[$pair[0]] ?? null;
+            $q2 = $indexed[$pair[1]] ?? null;
             
             if ($q1 && $q2) {
                 // Compare si les mêmes dimensions sont choisies

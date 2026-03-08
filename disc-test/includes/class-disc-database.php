@@ -216,7 +216,7 @@ class DISC_Database {
     /**
      * Enregistre les réponses d'un utilisateur
      */
-    public static function save_responses($session_token, $responses) {
+    public static function save_responses($responses) {
         global $wpdb;
         $table = $wpdb->prefix . 'disc_responses';
         

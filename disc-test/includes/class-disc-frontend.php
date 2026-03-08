@@ -71,7 +71,7 @@ class DISC_Frontend {
         DISC_Security::verify_ajax_nonce();
 
         $allowed_events  = array('test_started', 'question_answered');
-        $event           = sanitize_key($_POST['event'] ?? 'question_answered');
+        $event           = sanitize_key(wp_unslash($_POST['event'] ?? 'question_answered'));
         $session_token   = sanitize_text_field(wp_unslash($_POST['session_token'] ?? ''));
 
         if (!in_array($event, $allowed_events, true)) {
@@ -106,6 +106,13 @@ class DISC_Frontend {
             ));
         }
         
+        // Récupère le token de session généré par le frontend
+        // Ce token lie les logs intermédiaires (test_started, question_answered) au résultat final
+        $session_token = sanitize_text_field(wp_unslash($_POST['session_token'] ?? ''));
+        if (empty($session_token) || !preg_match('/^[0-9a-f]{64}$/', $session_token)) {
+            $session_token = DISC_Security::generate_session_token();
+        }
+
         // Récupère et valide les données du formulaire
         $contact_data = array(
             'email' => sanitize_email(wp_unslash($_POST['email'] ?? '')),
@@ -136,7 +143,7 @@ class DISC_Frontend {
 
         // Charge les questions officielles depuis la DB pour valider l'intégrité
         $official_questions = DISC_Database::get_questions();
-        $official_ids       = array_map(function($q) { return (int) $q->id; }, $official_questions);
+        $official_ids       = array_map(function($q) { return (int) $q['id']; }, $official_questions);
         $expected_count     = count($official_ids);
 
         if (count($responses) !== $expected_count) {
@@ -218,9 +225,6 @@ class DISC_Frontend {
         // Détermine le profil
         $profile_type = DISC_Renderer::determine_profile_type($scores);
         
-        // Génère un token de session unique
-        $session_token = DISC_Security::generate_session_token();
-        
         // Enregistre le résultat
         $result_data = array(
             'session_token' => $session_token,
@@ -259,7 +263,7 @@ class DISC_Frontend {
                 'response_time' => floatval($response['response_time'])
             );
         }
-        DISC_Database::save_responses($session_token, $detailed_responses);
+        DISC_Database::save_responses($detailed_responses);
         
         // Log l'événement
         DISC_Database::log_event('test_completed', array(
@@ -299,7 +303,7 @@ class DISC_Frontend {
 
             wp_safe_remote_post($webhook_url, array(
                 'headers'   => array('Content-Type' => 'application/json'),
-                'body'      => json_encode($payload),
+                'body'      => wp_json_encode($payload),
                 'timeout'   => 5,
                 'blocking'  => false,
             ));
