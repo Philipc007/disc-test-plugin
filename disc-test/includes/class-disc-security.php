@@ -18,7 +18,8 @@ class DISC_Security {
      * Vérifie le nonce pour les requêtes AJAX
      */
     public static function verify_ajax_nonce() {
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'disc_test_nonce')) {
+        $nonce = isset($_POST['nonce']) ? wp_unslash($_POST['nonce']) : '';
+        if (!wp_verify_nonce($nonce, 'disc_test_nonce')) {
             wp_send_json_error(array(
                 'message' => __('Erreur de sécurité. Veuillez recharger la page.', 'disc-test')
             ));
@@ -30,17 +31,11 @@ class DISC_Security {
      * Obtient l'adresse IP du client de manière sécurisée
      */
     public static function get_client_ip() {
-        $ip = '';
-        
-        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-            $ip = $_SERVER['HTTP_CLIENT_IP'];
-        } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            // X-Forwarded-For peut contenir plusieurs IPs (client, proxy1, proxy2)
-            $ip = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
-        } else {
-            $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-        }
-        
+        // Par défaut : REMOTE_ADDR (seule valeur non falsifiable)
+        // X-Forwarded-For/HTTP_CLIENT_IP sont facilement spoofables — à activer
+        // uniquement si le site est derrière un reverse proxy maîtrisé.
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+
         // Valide que c'est bien une IP
         return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : '';
     }
@@ -201,12 +196,25 @@ class DISC_Security {
         if (!defined('DISC_ENCRYPTION_KEY')) {
             return $encrypted_email;
         }
-        
+
+        $decoded = base64_decode($encrypted_email, true);
+
+        // Si le décodage échoue ou si le séparateur est absent, la valeur
+        // est probablement un email en clair (données historiques non chiffrées)
+        if ($decoded === false || strpos($decoded, '::') === false) {
+            return $encrypted_email;
+        }
+
         $method = 'AES-256-CBC';
-        $key = substr(hash('sha256', DISC_ENCRYPTION_KEY), 0, 32);
-        
-        list($encrypted_data, $iv) = explode('::', base64_decode($encrypted_email), 2);
-        
-        return openssl_decrypt($encrypted_data, $method, $key, 0, $iv);
+        $key    = substr(hash('sha256', DISC_ENCRYPTION_KEY), 0, 32);
+
+        $parts = explode('::', $decoded, 2);
+        if (count($parts) !== 2 || empty($parts[0]) || empty($parts[1])) {
+            return $encrypted_email;
+        }
+
+        $decrypted = openssl_decrypt($parts[0], $method, $key, 0, $parts[1]);
+
+        return ($decrypted !== false) ? $decrypted : $encrypted_email;
     }
 }

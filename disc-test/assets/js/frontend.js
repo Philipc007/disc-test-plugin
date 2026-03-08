@@ -306,36 +306,34 @@
         // Crée le graphique
         createChart(data.scores);
         
-        // Affiche la description du profil
+        // Affiche la description du profil (construction DOM pour éviter XSS)
         const description = data.profile_description;
-        
-        let html = '<div class="disc-profile-content">';
-        html += '<h3>' + description.title + '</h3>';
-        html += '<h4>' + description.subtitle + '</h4>';
-        html += '<p>' + description.description + '</p>';
-        
-        html += '<h4>Vos forces principales</h4>';
-        html += '<ul>';
+
+        const $content = $('<div>', { class: 'disc-profile-content' });
+        $content.append($('<h3>').text(description.title));
+        $content.append($('<h4>').text(description.subtitle));
+        $content.append($('<p>').text(description.description));
+
+        $content.append($('<h4>').text('Vos forces principales'));
+        const $strengthsList = $('<ul>');
         description.strengths.forEach(function(strength) {
-            html += '<li>' + strength + '</li>';
+            $strengthsList.append($('<li>').text(strength));
         });
-        html += '</ul>';
-        
-        if (description.challenges) {
-            html += '<h4>Défis potentiels</h4>';
-            html += '<ul>';
+        $content.append($strengthsList);
+
+        if (description.challenges && description.challenges.length) {
+            $content.append($('<h4>').text('Défis potentiels'));
+            const $challengesList = $('<ul>');
             description.challenges.forEach(function(challenge) {
-                html += '<li>' + challenge + '</li>';
+                $challengesList.append($('<li>').text(challenge));
             });
-            html += '</ul>';
+            $content.append($challengesList);
         }
-        
-        html += '<h4>Conseil de développement</h4>';
-        html += '<p>' + description.development + '</p>';
-        
-        html += '</div>';
-        
-        $('.disc-profile-description').html(html);
+
+        $content.append($('<h4>').text('Conseil de développement'));
+        $content.append($('<p>').text(description.development));
+
+        $('.disc-profile-description').empty().append($content);
         
         // Affiche l'avertissement de cohérence si nécessaire
         if (data.show_consistency_warning) {

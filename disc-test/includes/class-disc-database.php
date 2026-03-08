@@ -261,7 +261,7 @@ class DISC_Database {
                 'total_time' => intval($data['total_time']),
                 'ip_address' => DISC_Security::get_client_ip(),
                 'user_agent' => sanitize_text_field($_SERVER['HTTP_USER_AGENT'] ?? ''),
-                'consent_given' => 1
+                'consent_given' => intval($data['consent_given'] ?? 0)
             ),
             array('%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%f', '%f', '%d', '%s', '%s', '%d')
         );

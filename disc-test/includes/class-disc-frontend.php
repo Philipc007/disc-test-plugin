@@ -126,29 +126,71 @@ class DISC_Frontend {
         }
         
         // Récupère les réponses du test
-        $responses = json_decode(stripslashes($_POST['responses'] ?? '[]'), true);
-        
-        if (empty($responses)) {
+        $responses = json_decode(wp_unslash($_POST['responses'] ?? '[]'), true);
+
+        if (empty($responses) || !is_array($responses)) {
             wp_send_json_error(array(
                 'message' => __('Aucune réponse trouvée. Veuillez recommencer le test.', 'disc-test')
             ));
         }
-        
-        // Calcule les scores DISC
-        $scores = array('D' => 0, 'I' => 0, 'S' => 0, 'C' => 0);
-        $response_times = array();
+
+        // Charge les questions officielles depuis la DB pour valider l'intégrité
+        $official_questions = DISC_Database::get_questions();
+        $official_ids       = array_map(function($q) { return (int) $q->id; }, $official_questions);
+        $expected_count     = count($official_ids);
+
+        if (count($responses) !== $expected_count) {
+            wp_send_json_error(array(
+                'message' => __('Nombre de réponses incorrect. Veuillez recommencer le test.', 'disc-test')
+            ));
+        }
+
+        // Valide chaque réponse avant de calculer quoi que ce soit
+        $seen_ids        = array();
         $valid_dimensions = array('D', 'I', 'S', 'C');
 
         foreach ($responses as $response) {
-            $most_like = strtoupper(sanitize_text_field($response['most_like'] ?? ''));
-            $least_like = strtoupper(sanitize_text_field($response['least_like'] ?? ''));
+            $question_id = intval($response['question_id'] ?? 0);
+            $most_like   = strtoupper(sanitize_text_field($response['most_like'] ?? ''));
+            $least_like  = strtoupper(sanitize_text_field($response['least_like'] ?? ''));
 
-            // Valide que les dimensions sont bien D, I, S ou C
-            if (!in_array($most_like, $valid_dimensions) || !in_array($least_like, $valid_dimensions)) {
+            // La question doit exister officiellement
+            if (!in_array($question_id, $official_ids, true)) {
                 wp_send_json_error(array(
                     'message' => __('Données de réponse invalides. Veuillez recommencer le test.', 'disc-test')
                 ));
             }
+
+            // Chaque question ne peut être répondue qu'une seule fois
+            if (in_array($question_id, $seen_ids, true)) {
+                wp_send_json_error(array(
+                    'message' => __('Données de réponse en double. Veuillez recommencer le test.', 'disc-test')
+                ));
+            }
+            $seen_ids[] = $question_id;
+
+            // Les dimensions doivent être valides
+            if (!in_array($most_like, $valid_dimensions, true) || !in_array($least_like, $valid_dimensions, true)) {
+                wp_send_json_error(array(
+                    'message' => __('Données de réponse invalides. Veuillez recommencer le test.', 'disc-test')
+                ));
+            }
+
+            // most_like et least_like doivent être différents
+            if ($most_like === $least_like) {
+                wp_send_json_error(array(
+                    'message' => __('Données de réponse invalides. Veuillez recommencer le test.', 'disc-test')
+                ));
+            }
+        }
+
+        // Calcule les scores DISC
+        $scores         = array('D' => 0, 'I' => 0, 'S' => 0, 'C' => 0);
+        $response_times = array();
+
+        foreach ($responses as $response) {
+            $most_like  = strtoupper(sanitize_text_field($response['most_like'] ?? ''));
+            $least_like = strtoupper(sanitize_text_field($response['least_like'] ?? ''));
 
             // +2 points pour "le plus", -1 point pour "le moins"
             $scores[$most_like] += 2;
@@ -194,7 +236,8 @@ class DISC_Frontend {
             'profile_type' => $profile_type,
             'consistency_score' => $consistency_score,
             'average_response_time' => $average_response_time,
-            'total_time' => $total_time
+            'total_time' => $total_time,
+            'consent_given' => $contact_data['consent']
         );
         
         $result_id = DISC_Database::save_result($result_data);
@@ -247,6 +290,11 @@ class DISC_Frontend {
                 'consistency_score' => $consistency_score,
                 'completed_at'      => current_time('c'),
                 'tags'              => self::generate_crm_tags($profile_type, $scores, $consistency_score),
+                'source'            => 'disc-test-wordpress',
+                'test_version'      => DISC_TEST_VERSION,
+                'session_token'     => $session_token,
+                'consent_given'     => (bool) $contact_data['consent'],
+                'locale'            => get_locale(),
             );
 
             wp_safe_remote_post($webhook_url, array(

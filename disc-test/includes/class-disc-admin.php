@@ -171,10 +171,11 @@ class DISC_Admin {
                 $sent = DISC_Email::send_results_email($contact_data, $scores, $result['profile_type']);
                 DISC_Database::log_event('email_resent', array('result_id' => $result['id'], 'success' => $sent));
 
-                $notice_class = $sent ? 'notice-success' : 'notice-error';
-                $notice_msg   = $sent
-                    ? sprintf(__('Email renvoyé avec succès à %s.', 'disc-test'), esc_html($result['email']))
-                    : sprintf(__('Échec du renvoi à %s. Vérifiez votre configuration SMTP.', 'disc-test'), esc_html($result['email']));
+                $display_email = esc_html(DISC_Security::decrypt_email($result['email']));
+                $notice_class  = $sent ? 'notice-success' : 'notice-error';
+                $notice_msg    = $sent
+                    ? sprintf(__('Email renvoyé avec succès à %s.', 'disc-test'), $display_email)
+                    : sprintf(__('Échec du renvoi à %s. Vérifiez votre configuration SMTP.', 'disc-test'), $display_email);
 
                 echo '<div class="notice ' . $notice_class . ' is-dismissible"><p>' . $notice_msg . '</p></div>';
             }
