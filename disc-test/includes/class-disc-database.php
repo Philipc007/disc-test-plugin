@@ -218,21 +218,29 @@ class DISC_Database {
      */
     public static function save_responses($responses) {
         global $wpdb;
-        $table = $wpdb->prefix . 'disc_responses';
-        
+        $table   = $wpdb->prefix . 'disc_responses';
+        $success = 0;
+
         foreach ($responses as $response) {
-            $wpdb->insert(
+            $inserted = $wpdb->insert(
                 $table,
                 array(
-                    'result_id' => $response['result_id'],
-                    'question_id' => $response['question_id'],
-                    'most_like' => $response['most_like'],
-                    'least_like' => $response['least_like'],
+                    'result_id'     => $response['result_id'],
+                    'question_id'   => $response['question_id'],
+                    'most_like'     => $response['most_like'],
+                    'least_like'    => $response['least_like'],
                     'response_time' => $response['response_time']
                 ),
                 array('%d', '%d', '%s', '%s', '%f')
             );
+
+            if ($inserted) {
+                $success++;
+            }
         }
+
+        // Retourne le nombre de réponses effectivement enregistrées
+        return $success;
     }
     
     /**

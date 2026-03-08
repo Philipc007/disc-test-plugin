@@ -189,6 +189,14 @@ class DISC_Frontend {
                     'message' => __('Données de réponse invalides. Veuillez recommencer le test.', 'disc-test')
                 ));
             }
+
+            // Le temps de réponse doit être un nombre positif
+            $response_time = floatval($response['response_time'] ?? -1);
+            if ($response_time < 0) {
+                wp_send_json_error(array(
+                    'message' => __('Données de réponse invalides. Veuillez recommencer le test.', 'disc-test')
+                ));
+            }
         }
 
         // Calcule les scores DISC
@@ -263,16 +271,28 @@ class DISC_Frontend {
                 'response_time' => floatval($response['response_time'])
             );
         }
-        DISC_Database::save_responses($detailed_responses);
-        
+        $responses_saved = DISC_Database::save_responses($detailed_responses);
+        if ($responses_saved !== count($detailed_responses)) {
+            DISC_Database::log_event('responses_save_partial', array(
+                'expected' => count($detailed_responses),
+                'saved'    => $responses_saved,
+                'result_id' => $result_id
+            ), $session_token);
+        }
+
         // Log l'événement
         DISC_Database::log_event('test_completed', array(
             'profile_type' => $profile_type,
             'consistency_score' => $consistency_score
         ), $session_token);
         
-        // Envoie l'email avec les résultats
-        DISC_Email::send_results_email($contact_data, $scores, $profile_type);
+        // Envoie l'email avec les résultats et logue le résultat
+        $email_sent = DISC_Email::send_results_email($contact_data, $scores, $profile_type);
+        if (!$email_sent) {
+            DISC_Database::log_event('email_send_failed', array(
+                'result_id' => $result_id
+            ), $session_token);
+        }
         
         // Intégration CRM — hook WordPress pour extensions tierces
         do_action('disc_test_completed', $contact_data, $scores, $profile_type);
