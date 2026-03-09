@@ -456,13 +456,20 @@ class DISC_Admin {
             update_option('disc_email_subject', sanitize_text_field(wp_unslash($_POST['email_subject'] ?? '')));
             update_option('disc_crm_webhook', esc_url_raw(wp_unslash($_POST['crm_webhook'] ?? '')));
             update_option('disc_tag_prefix', sanitize_key(wp_unslash($_POST['tag_prefix'] ?? 'disc')));
+            update_option('disc_email_footer_enabled', isset($_POST['email_footer_enabled']) ? 1 : 0);
+            update_option('disc_email_footer_content', wp_kses_post(wp_unslash($_POST['email_footer_content'] ?? '')));
 
             echo '<div class="notice notice-success is-dismissible"><p>' . __('Paramètres enregistrés.', 'disc-test') . '</p></div>';
         }
 
-        $email_subject = get_option('disc_email_subject', __('Votre profil DISC : {profil}', 'disc-test'));
-        $crm_webhook   = get_option('disc_crm_webhook', '');
-        $tag_prefix    = get_option('disc_tag_prefix', 'disc');
+        $email_subject         = get_option('disc_email_subject', __('Votre profil DISC : {profil}', 'disc-test'));
+        $crm_webhook           = get_option('disc_crm_webhook', '');
+        $tag_prefix            = get_option('disc_tag_prefix', 'disc');
+        $email_footer_enabled  = get_option('disc_email_footer_enabled', 1);
+        $email_footer_default  = "Conformément au RGPD, vous disposez d'un droit d'accès, de rectification et d'effacement de vos données personnelles.\n"
+                               . "Pour exercer ces droits ou vous désinscrire, contactez-nous : {email_admin}\n\n"
+                               . "Cet email vous a été envoyé suite à votre participation au test DISC sur {site_name}.";
+        $email_footer_content  = get_option('disc_email_footer_content', $email_footer_default);
         
         ?>
         <div class="wrap">
@@ -510,7 +517,39 @@ class DISC_Admin {
                             </p>
                         </td>
                     </tr>
+
+                    <tr>
+                        <th scope="row"><?php _e('Pied de page email', 'disc-test'); ?></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="email_footer_enabled" id="email_footer_enabled" value="1" <?php checked(1, $email_footer_enabled); ?>>
+                                <?php _e('Activer le pied de page légal dans les emails', 'disc-test'); ?>
+                            </label>
+                        </td>
+                    </tr>
+
+                    <tr id="email_footer_row" <?php echo $email_footer_enabled ? '' : 'style="display:none;"'; ?>>
+                        <th scope="row">
+                            <label for="email_footer_content"><?php _e('Contenu du pied de page', 'disc-test'); ?></label>
+                        </th>
+                        <td>
+                            <textarea id="email_footer_content" name="email_footer_content" rows="6" class="large-text"><?php echo esc_textarea($email_footer_content); ?></textarea>
+                            <p class="description">
+                                <?php _e('Variables disponibles :', 'disc-test'); ?>
+                                <code>{email_admin}</code> — <?php _e('adresse email de l\'administrateur', 'disc-test'); ?>,
+                                <code>{site_name}</code> — <?php _e('nom du site', 'disc-test'); ?>,
+                                <code>{first_name}</code> — <?php _e('prénom du participant', 'disc-test'); ?>,
+                                <code>{profil}</code> — <?php _e('profil DISC (ex : DI)', 'disc-test'); ?>.<br>
+                                <?php _e('Le texte est affiché tel quel dans le pied de page de chaque email de résultats.', 'disc-test'); ?>
+                            </p>
+                        </td>
+                    </tr>
                 </table>
+                <script>
+                document.getElementById('email_footer_enabled').addEventListener('change', function() {
+                    document.getElementById('email_footer_row').style.display = this.checked ? '' : 'none';
+                });
+                </script>
                 
                 <p class="submit">
                     <input type="submit" name="disc_save_settings" class="button button-primary" value="<?php _e('Enregistrer les modifications', 'disc-test'); ?>">

@@ -119,10 +119,28 @@ class DISC_Email {
                     <h3>Axes de développement</h3>
                     <p><?php echo esc_html($profile_description['development']); ?></p>
                 </div>
-                <div class="footer">
-                    <p>Cet email a été envoyé suite à votre demande sur notre site.</p>
-                    <p>Pour toute question, contactez-nous à <?php echo esc_html(get_option('admin_email')); ?></p>
+                <?php
+                // Pied de page légal configurable (activé/désactivé dans les paramètres du plugin)
+                if (get_option('disc_email_footer_enabled', 1)) :
+                    $footer_default = "Conformément au RGPD, vous disposez d'un droit d'accès, de rectification et d'effacement de vos données personnelles.\n"
+                                    . "Pour exercer ces droits ou vous désinscrire, contactez-nous : {email_admin}\n\n"
+                                    . "Cet email vous a été envoyé suite à votre participation au test DISC sur {site_name}.";
+                    $footer_text    = get_option('disc_email_footer_content', $footer_default);
+                    $footer_text    = str_replace(
+                        array('{email_admin}', '{site_name}', '{first_name}', '{profil}'),
+                        array(
+                            get_option('admin_email'),
+                            get_bloginfo('name'),
+                            esc_html($contact_data['first_name']),
+                            esc_html($profile_type)
+                        ),
+                        $footer_text
+                    );
+                ?>
+                <div class="footer" style="border-top:1px solid #e0e0e0;margin-top:20px;padding-top:16px;">
+                    <p style="font-size:11px;color:#888;line-height:1.6;white-space:pre-line;"><?php echo esc_html($footer_text); ?></p>
                 </div>
+                <?php endif; ?>
             </div>
         </body>
         </html>
