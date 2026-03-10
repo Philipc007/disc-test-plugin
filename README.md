@@ -5,7 +5,8 @@
 [![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-blue.svg)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)](https://www.php.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v2-green.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Status](https://img.shields.io/badge/Status-MVP%20Testing-orange.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.2-blue.svg)]()
+[![Status](https://img.shields.io/badge/Status-En%20ligne%20(accès%20restreint)-green.svg)]()
 
 ## 📋 Table des Matières
 
@@ -64,9 +65,10 @@ Ce plugin WordPress permet d'administrer un test DISC complet (28 questions) ave
 - ✅ **Paramètres** : Configuration email, webhook CRM, clé encryption
 
 ### 🔌 Intégrations
-- ✅ **Hook WordPress** : `do_action('disc_test_completed', ...)` pour CRM
-- ⏳ **Webhook** : POST JSON automatique vers Mautic/autre (à finaliser)
-- ⏳ **Mautic** : Tags automatiques par profil (roadmap)
+- ✅ **Hook WordPress** : `do_action('disc_test_completed', ...)` pour Bit Integrations et code custom
+- ✅ **Webhook HTTP** : POST JSON non-bloquant avec payload complet (contact, profil, scores, tags, session)
+- ✅ **Tags CRM auto** : préfixe configurable, seuil 30% sur échelle relative
+- ⏳ **Mautic** : connexion webhook en cours de test
 - ⏳ **PDF** : Génération rapport téléchargeable (roadmap)
 
 ### 🧩 Compatibilité
@@ -276,17 +278,25 @@ Consultez [TASKS.md](TASKS.md) pour voir les tâches prioritaires.
 
 ## 🗺️ Roadmap
 
-### Version 1.1 (Q2 2026)
-- [ ] Génération PDF résultats
-- [ ] Export CSV automatique
-- [ ] Webhook Mautic intégré
-- [ ] Bloc Gutenberg compilé
+### Version 1.2 — En ligne ✅ (2026-03-10)
+- [x] Scoring ipsatif D4D (+2/-1/+0.5/+0.5, scores relatifs %)
+- [x] Détection profil par écarts (seuils configurables)
+- [x] Pied de page email RGPD configurable (admin)
+- [x] Webhook enrichi (source, version, session, consentement, locale)
+- [x] Validation stricte des réponses côté serveur
+- [x] 4 passes d'audit sécurité appliquées
 
-### Version 1.2 (Q3 2026)
+### Version 1.3 (prochaine)
+- [ ] Connexion Mautic via webhook
+- [ ] Page "Santé du plugin" admin
+- [ ] Log intention webhook
+- [ ] Génération PDF résultats
+
+### Version 2.0 (roadmap)
 - [ ] Traductions EN/ES
 - [ ] Comparaison d'équipe
 - [ ] Badge LinkedIn personnalisé
-- [ ] Analytics avancés (GA4)
+- [ ] Multi-kits de tests
 
 ### Version 2.0 (Q4 2026)
 - [ ] API REST

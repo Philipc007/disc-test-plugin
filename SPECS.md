@@ -635,24 +635,46 @@ Raison : Meilleure délivrabilité emails
 - ✅ Renvoi d'email depuis l'admin par résultat (avec confirmation + log audit)
 - ✅ Édition des questions depuis l'admin
 - ✅ Partage LinkedIn — modale copier/coller (API LinkedIn ne supporte plus le pré-remplissage)
-- ✅ Tags CRM dans le webhook — configurables dans les paramètres (à venir)
+- ✅ Tags CRM dans le webhook — préfixe configurable dans les paramètres
+
+## Fonctionnalités Implémentées (v1.2 — 2026-03-10)
+
+- ✅ **Scoring ipsatif D4D** — `+2/-1/+0.5/+0.5`, scores relatifs % (somme = 100%), plus de 0 ou 100 mécanique
+- ✅ **Détection profil par écarts** — remplace seuil fixe >= 60, seuils `DISC_SEUIL_DOUBLE` (5) et `DISC_SEUIL_EQUILIBRE` (4) configurables dans `wp-config.php`
+- ✅ **Vocabulaire "Tendance"** — email, graphique et tooltip Chart.js
+- ✅ **Pied de page email RGPD** — configurable dans les paramètres admin, activable/désactivable, variables : `{email_admin}`, `{site_name}`, `{first_name}`, `{profil}`
+- ✅ **Payload webhook enrichi** — `source`, `test_version`, `session_token`, `consent_given`, `locale`
+- ✅ **Continuité session** — `session_token` frontend réutilisé côté PHP
+- ✅ **Validation stricte des réponses** — count exact vs DB, IDs officiels, unicité, `most_like ≠ least_like`, `response_time >= 0`
+- ✅ **Logging des erreurs** — `email_send_failed` et `responses_save_partial` enregistrés en DB
+- ✅ **4 passes d'audit sécurité** — consentement RGPD, XSS, SSRF, chiffrement, rate limiting, nonce
+
+## Options WordPress du plugin
+
+| Option | Défaut | Description |
+|--------|--------|-------------|
+| `disc_email_subject` | `Votre profil DISC : {profil}` | Sujet de l'email |
+| `disc_crm_webhook` | `` | URL webhook CRM |
+| `disc_tag_prefix` | `disc` | Préfixe des tags CRM |
+| `disc_email_footer_enabled` | `1` | Activer le pied de page légal |
+| `disc_email_footer_content` | Texte RGPD par défaut | Contenu du pied de page email |
 
 ## Limitations Connues
 
-1. **Pas de PDF** - Email HTML + graphique image (phase 1)
-2. **Bloc Gutenberg non compilé** - Nécessite npm build (optionnel)
-3. **Pas de traductions** - Français uniquement
-4. **Pas de cache** - Compatible mais pas implémenté
-5. **Admin.js vide** - Pas de JS admin pour l'instant
+1. **Pas de PDF** — Email HTML + graphique image (phase 1)
+2. **Bloc Gutenberg non compilé** — Nécessite npm build (optionnel)
+3. **Pas de traductions** — Français uniquement
+4. **Webhook non-bloquant** — Pas de confirmation de réception côté CRM (intentionnel pour UX)
+5. **Admin.js vide** — Pas de JS admin pour l'instant
 
 ## Roadmap
 
-### v1.2 (Post-lancement)
-- Tags CRM configurables dans les paramètres
-- Génération PDF résultats
-- Compilation bloc Gutenberg
+### v1.3 (prochaine)
+- Connexion Mautic via webhook
+- Page "Santé du plugin" admin (dernier email, dernier webhook, stats)
+- Log intention webhook avant envoi
 
-### v1.2
+### v2.0
 - Traductions EN/ES
 - Comparaison d'équipe
 - Badge LinkedIn personnalisé

@@ -26,14 +26,28 @@
   - Tag qualité : `disc-consistent` (≥70%) / `disc-suspect` (<50%)
   - Préfixe configurable depuis **Paramètres** du plugin
 
-### Tests E2E à effectuer (GO depuis 2026-03-08)
+### Tests E2E (GO depuis 2026-03-08)
 
-- [ ] Parcours complet visiteur (test → résultats → email reçu)
-- [ ] BDD : 1 ligne `disc_results`, N lignes `disc_responses`, `consent_given` correct, `session_token` cohérent
-- [ ] Email : sujet configuré, graphique visible, contenu correct
-- [ ] Webhook : payload JSON reçu dans n8n, tags présents, champs `source`/`test_version`/`locale` présents
-- [ ] Admin : listing lisible, email déchiffré, renvoi email, export CSV
-- [ ] Cas d'erreur : webhook URL vide, SMTP off, soumission incomplète, double tentative
+- [x] **Parcours complet visiteur** ✅ — validé sur o2switch (2026-03-09)
+- [x] **Email reçu** ✅ — SMTP o2switch fonctionnel
+- [x] **Renvoi email admin** ✅ — fonctionnel en production
+- [ ] BDD : vérifier `consent_given` correct et `session_token` cohérent entre logs et résultat
+- [ ] Webhook : tester payload JSON dans n8n/webhook.site
+- [ ] Cas d'erreur : webhook URL vide, soumission incomplète, double tentative
+
+### Développements v1.2 (2026-03-08 → 2026-03-10)
+
+- [x] **Scoring ipsatif D4D** ✅ — `+2/-1/+0.5/+0.5`, scores relatifs %, somme = 100%
+- [x] **Détection profil par écarts** ✅ — remplace seuil fixe >= 60, seuils configurables
+- [x] **Tags CRM seuil 30%** ✅ — adapté à l'échelle relative
+- [x] **Pied de page email RGPD** ✅ — configurable admin, activable/désactivable, variables `{email_admin}` `{site_name}` `{first_name}` `{profil}`
+- [x] **Payload webhook enrichi** ✅ — `source`, `test_version`, `session_token`, `consent_given`, `locale`
+- [x] **Continuité session** ✅ — `session_token` frontend réutilisé côté PHP (validé `/^[0-9a-f]{64}$/`)
+- [x] **Validation stricte réponses** ✅ — count exact, IDs officiels, unicité, `most_like ≠ least_like`, `response_time >= 0`
+- [x] **`save_responses()` retourne le count** ✅ — échec partiel loggé
+- [x] **`send_results_email()` retour loggé** ✅ — `email_send_failed` en DB si échec
+- [x] **Vocabulaire "Tendance"** ✅ — email et graphique Chart.js
+- [x] **Graphique axe x max 60** ✅ — meilleure lisibilité scores relatifs
 
 ### Corrections Audit Sécurité (2026-03-08)
 
@@ -691,6 +705,6 @@ Aucun bug connu actuellement - À compléter après tests
 
 ---
 
-**Dernière mise à jour** : 2026-03-08
-**Status global** : 🟢 MVP complet — Audit sécurité appliqué (10/10 fixes)
-**Prochaine étape** : Tests E2E + déploiement production
+**Dernière mise à jour** : 2026-03-10
+**Status global** : 🟢 v1.2 en ligne (o2switch) — Email ✅ — Mautic à connecter
+**Prochaine étape** : Test webhook Mautic + ouverture contrôlée
