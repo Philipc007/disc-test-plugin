@@ -79,45 +79,62 @@ class DISC_Email {
                     <div class="profile-badge">
                         <div class="profile-type"><?php echo esc_html($profile_type); ?></div>
                         <h2><?php echo esc_html($profile_description['title']); ?></h2>
-                        <p><?php echo esc_html($profile_description['subtitle']); ?></p>
+                        <p><?php echo esc_html($profile_description['subtitle'] ?? ''); ?> — contraste <?php echo esc_html(isset($profile_description['contrast_level']['label']) ? $profile_description['contrast_level']['label'] : ''); ?></p>
                     </div>
                     
-                    <h3>Vos tendances DISC</h3>
+                    <h3>Vos scores DISC (sur 100)</h3>
                     <div class="scores">
                         <div class="score-row">
                             <div class="score-label">Dominance (D):</div>
-                            <div class="score-value"><?php echo $scores['D']; ?>%</div>
+                            <div class="score-value"><?php echo esc_html(intval($scores['D'] ?? 0)); ?> / 100</div>
                         </div>
                         <div class="score-row">
                             <div class="score-label">Influence (I):</div>
-                            <div class="score-value"><?php echo $scores['I']; ?>%</div>
+                            <div class="score-value"><?php echo esc_html(intval($scores['I'] ?? 0)); ?> / 100</div>
                         </div>
                         <div class="score-row">
                             <div class="score-label">Stabilité (S):</div>
-                            <div class="score-value"><?php echo $scores['S']; ?>%</div>
+                            <div class="score-value"><?php echo esc_html(intval($scores['S'] ?? 0)); ?> / 100</div>
                         </div>
                         <div class="score-row">
                             <div class="score-label">Conformité (C):</div>
-                            <div class="score-value"><?php echo $scores['C']; ?>%</div>
+                            <div class="score-value"><?php echo esc_html(intval($scores['C'] ?? 0)); ?> / 100</div>
                         </div>
                     </div>
 
                     <h3>Votre graphique DISC</h3>
                     <img src="<?php echo esc_url($chart_url); ?>" alt="Graphique DISC" width="500" style="max-width:100%;display:block;margin:0 auto 10px;">
-                    <p style="text-align:center;color:#666;font-size:12px;margin-bottom:20px;"><em>Les valeurs représentent la répartition de vos tendances comportementales. Elles totalisent 100%.</em></p>
+                    <p style="text-align:center;color:#666;font-size:12px;margin-bottom:20px;"><em>Les valeurs représentent vos tendances comportementales, chacune notée sur 100.</em></p>
 
                     <h3>Votre profil</h3>
-                    <p><?php echo esc_html($profile_description['description']); ?></p>
-                    
+                    <p><?php echo esc_html($profile_description['description'] ?? ''); ?></p>
+
+                    <?php if (!empty($profile_description['strengths'])): ?>
                     <h3>Vos forces</h3>
                     <ul>
-                        <?php foreach ($profile_description['strengths'] as $strength): ?>
+                        <?php foreach ((array) $profile_description['strengths'] as $strength): ?>
                             <li><?php echo esc_html($strength); ?></li>
                         <?php endforeach; ?>
                     </ul>
-                    
+                    <?php endif; ?>
+
+                    <?php if (!empty($profile_description['vigilance'])): ?>
+                    <h3>Points de vigilance</h3>
+                    <ul>
+                        <?php foreach ((array) $profile_description['vigilance'] as $point): ?>
+                            <li><?php echo esc_html($point); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <?php endif; ?>
+
+                    <?php if (!empty($profile_description['advice'])): ?>
                     <h3>Axes de développement</h3>
-                    <p><?php echo esc_html($profile_description['development']); ?></p>
+                    <ul>
+                        <?php foreach ((array) $profile_description['advice'] as $conseil): ?>
+                            <li><?php echo esc_html($conseil); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <?php endif; ?>
                 </div>
                 <?php
                 // Pied de page légal configurable (activé/désactivé dans les paramètres du plugin)

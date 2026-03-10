@@ -102,47 +102,57 @@ class DISC_Security {
     
     /**
      * Calcule le score de cohérence des réponses
-     * Retourne un score entre 0 et 100
+     *
+     * Logique : 7 paires de blocs miroir définis par question_order.
+     * On indexe les réponses par question_order (pas question_id)
+     * pour rester robuste à une réinsertion ou renumérotation des questions.
+     *
+     * Pour chaque paire, si la même dimension est choisie en most_like
+     * OU en least_like dans les deux blocs, c'est cohérent.
+     *
+     * Retourne un score 0–100 :
+     *   >= 70 : bonne cohérence
+     *   50–69 : cohérence correcte
+     *   < 50  : cohérence à confirmer
      */
     public static function calculate_consistency_score($responses) {
-        // Paires de questions qui mesurent des traits similaires
-        // Ces paires doivent avoir des réponses cohérentes
-        $consistency_pairs = array(
-            array(1, 13),  // Leadership/Direction
-            array(2, 17),  // Défis/Audace
-            array(3, 24),  // Focus objectifs/Efficacité
-            array(5, 10),  // Positivité
-            array(6, 15),  // Contrôle/Résultats immédiats
-            array(8, 22),  // Action/Initiative
-            array(11, 23), // Risques/Compétition
-            array(14, 26), // Communication ferme
-            array(16, 20), // Chaleur sociale
-            array(19, 25)  // Relations/Rapport
+        // Paires miroir définies par question_order (1-indexed)
+        // Chaque paire regroupe deux blocs mesurant des construits similaires
+        $mirror_pairs = array(
+            array(1, 8),   // Initiative / Autonomie
+            array(2, 9),   // Défi/Contact / Direct/Vision
+            array(3, 10),  // Avancer/Entraîner / Impulser/Idées
+            array(4, 11),  // Défendre/Enthousiasme / Cap/Mobiliser
+            array(5, 12),  // Objectifs/Convaincre / Confronter/Animer
+            array(6, 13),  // Trancher/Impact / Agir/Motiver
+            array(7, 14),  // Action/Encourager / Résultat/Influencer
         );
-        
-        // Indexe les réponses par question_id pour un accès robuste (indépendant de l'ordre)
+
+        // Indexe les réponses par question_order pour un accès robuste
         $indexed = array();
         foreach ($responses as $response) {
-            $indexed[(int) ($response['question_id'] ?? 0)] = $response;
+            $order = intval($response['question_order'] ?? 0);
+            if ($order > 0) {
+                $indexed[$order] = $response;
+            }
         }
 
-        $total_pairs      = count($consistency_pairs);
-        $consistent_pairs = 0;
+        $total_pairs    = count($mirror_pairs);
+        $consistent     = 0;
 
-        foreach ($consistency_pairs as $pair) {
-            $q1 = $indexed[$pair[0]] ?? null;
-            $q2 = $indexed[$pair[1]] ?? null;
-            
-            if ($q1 && $q2) {
-                // Compare si les mêmes dimensions sont choisies
-                if ($q1['most_like'] === $q2['most_like'] || 
-                    $q1['least_like'] === $q2['least_like']) {
-                    $consistent_pairs++;
+        foreach ($mirror_pairs as $pair) {
+            $r1 = $indexed[$pair[0]] ?? null;
+            $r2 = $indexed[$pair[1]] ?? null;
+
+            if ($r1 && $r2) {
+                if ($r1['most_like']  === $r2['most_like'] ||
+                    $r1['least_like'] === $r2['least_like']) {
+                    $consistent++;
                 }
             }
         }
-        
-        return round(($consistent_pairs / $total_pairs) * 100, 2);
+
+        return round(($consistent / $total_pairs) * 100, 2);
     }
     
     /**

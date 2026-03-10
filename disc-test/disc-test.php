@@ -3,7 +3,7 @@
  * Plugin Name: Test DISC Lead Magnet
  * Plugin URI: https://votresite.com/disc-test
  * Description: Plugin complet pour administrer un test DISC professionnel comme lead magnet pour dirigeants et managers
- * Version: 1.0.0
+ * Version: 1.3.0
  * Author: Votre Nom
  * Author URI: https://votresite.com
  * License: GPL v2 or later
@@ -17,10 +17,23 @@ if (!defined('ABSPATH')) {
 }
 
 // Définition des constantes du plugin
-define('DISC_TEST_VERSION', '1.0.0');
+define('DISC_TEST_VERSION', '1.3.0');
 define('DISC_TEST_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('DISC_TEST_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('DISC_TEST_PLUGIN_FILE', __FILE__);
+
+// Scoring constants — v1.3
+// Number of question blocs (used for normalization: raw range = [-N, +N])
+define('DISC_QUESTION_COUNT', 14);
+// Minimum normalized score (0-100) for a dimension to generate a CRM tag
+define('DISC_CRM_TAG_THRESHOLD', 60);
+// Profile type detection thresholds
+// Gap between rank-1 and rank-2 scores to declare a simple (single) profile
+define('DISC_PROFILE_SIMPLE_GAP', 10);
+// Max range of top-3 scores to declare a nuanced (3-dim) profile
+define('DISC_PROFILE_NUANCED_RANGE', 8);
+// Max contrast (max-min) to declare a balanced profile (DISC)
+define('DISC_PROFILE_BALANCED_CONTRAST', 14);
 
 /**
  * Classe principale du plugin DISC Test

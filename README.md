@@ -5,8 +5,8 @@
 [![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-blue.svg)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)](https://www.php.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v2-green.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Version](https://img.shields.io/badge/Version-1.2-blue.svg)]()
-[![Status](https://img.shields.io/badge/Status-En%20ligne%20(accès%20restreint)-green.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.3-blue.svg)]()
+[![Status](https://img.shields.io/badge/Status-ZIP%20prêt%20(déploiement%20v1.3)-green.svg)]()
 
 ## 📋 Table des Matières
 
@@ -22,7 +22,7 @@
 
 ## 🎯 Aperçu
 
-Ce plugin WordPress permet d'administrer un test DISC complet (28 questions) avec :
+Ce plugin WordPress permet d'administrer un test DISC complet (14 blocs ipsatifs) avec :
 - Capture d'emails APRÈS engagement (taux de conversion optimisé)
 - Calcul automatique des profils DISC
 - Génération de graphiques interactifs
@@ -35,11 +35,11 @@ Ce plugin WordPress permet d'administrer un test DISC complet (28 questions) ave
 ## ✨ Fonctionnalités
 
 ### 🎨 Frontend
-- ✅ **Test DISC complet** : 28 questions professionnelles validées
+- ✅ **Test DISC complet** : 14 blocs ipsatifs (scoring +1/-1/0, scores 0–100 indépendants)
 - ✅ **UX optimisée** : Navigation fluide, barre de progression, animations
 - ✅ **Responsive design** : Mobile-first, testé sur tous devices
-- ✅ **Graphiques interactifs** : Chart.js avec barres horizontales colorées
-- ✅ **12 profils DISC** : Descriptions détaillées avec forces et conseils
+- ✅ **Graphiques interactifs** : Chart.js barres horizontales, max=100
+- ✅ **23 profils DISC** : Synthèse / Forces / Vigilance / Conseils + indice de contraste
 - ✅ **Partage social** : Bouton LinkedIn intégré
 - ✅ **RGPD compliant** : Consentement explicite, politique confidentialité
 
@@ -60,14 +60,14 @@ Ce plugin WordPress permet d'administrer un test DISC complet (28 questions) ave
 ### 📊 Administration
 - ✅ **Dashboard statistiques** : Tests totaux, 30 jours, distribution profils
 - ✅ **Liste résultats** : Tous les participants avec filtres et recherche
-- ✅ **Gestion questions** : Visualisation des 28 questions DISC
+- ✅ **Gestion questions** : Visualisation et édition des 14 blocs + reset admin
 - ✅ **Export CSV** : Téléchargement données (à finaliser)
 - ✅ **Paramètres** : Configuration email, webhook CRM, clé encryption
 
 ### 🔌 Intégrations
 - ✅ **Hook WordPress** : `do_action('disc_test_completed', ...)` pour Bit Integrations et code custom
 - ✅ **Webhook HTTP** : POST JSON non-bloquant avec payload complet (contact, profil, scores, tags, session)
-- ✅ **Tags CRM auto** : préfixe configurable, seuil 30% sur échelle relative
+- ✅ **Tags CRM auto** : préfixe configurable, seuil 60/100 (scores indépendants)
 - ⏳ **Mautic** : connexion webhook en cours de test
 - ⏳ **PDF** : Génération rapport téléchargeable (roadmap)
 
@@ -157,7 +157,7 @@ Créez une nouvelle page et ajoutez :
 **Test DISC > Statistiques** : Dashboard avec métriques clés et graphiques
 
 #### Gérer les questions
-**Test DISC > Questions** : Visualisation des 28 questions DISC
+**Test DISC > Questions** : Visualisation et édition des 14 blocs DISC
 
 #### Configurer
 **Test DISC > Paramètres** : Email, webhook CRM, clé encryption
@@ -166,7 +166,7 @@ Créez une nouvelle page et ajoutez :
 
 1. Visitent la landing page du test
 2. Cliquent sur "Commencer le test"
-3. Répondent aux 28 questions (8-10 minutes)
+3. Répondent aux 14 blocs (5-8 minutes)
 4. Soumettent leurs coordonnées
 5. Reçoivent immédiatement leurs résultats à l'écran
 6. Reçoivent un email avec le détail de leur profil
@@ -201,7 +201,7 @@ disc-test/
 
 4 tables créées lors de l'activation :
 
-- `wp_disc_questions` : 28 questions DISC
+- `wp_disc_questions` : 14 blocs ipsatifs (4 items D/I/S/C par bloc)
 - `wp_disc_results` : Résultats des tests
 - `wp_disc_responses` : Réponses détaillées
 - `wp_disc_audit_logs` : Logs sécurité et audit
@@ -278,7 +278,7 @@ Consultez [TASKS.md](TASKS.md) pour voir les tâches prioritaires.
 
 ## 🗺️ Roadmap
 
-### Version 1.2 — En ligne ✅ (2026-03-10)
+### Version 1.2 ✅ (2026-03-10)
 - [x] Scoring ipsatif D4D (+2/-1/+0.5/+0.5, scores relatifs %)
 - [x] Détection profil par écarts (seuils configurables)
 - [x] Pied de page email RGPD configurable (admin)
@@ -286,11 +286,19 @@ Consultez [TASKS.md](TASKS.md) pour voir les tâches prioritaires.
 - [x] Validation stricte des réponses côté serveur
 - [x] 4 passes d'audit sécurité appliquées
 
-### Version 1.3 (prochaine)
+### Version 1.3 ✅ ZIP prêt (2026-03-10)
+- [x] Scoring +1/-1/0 — scores indépendants 0–100 (14 blocs)
+- [x] 23 profils DISC : synthesis / forces / vigilance / conseils
+- [x] Indice de contraste (4 niveaux) dans email + frontend
+- [x] Email enrichi : vigilance (Bloc E), conseils complets (Bloc F), badge contraste
+- [x] Session token 64 chars hex (logs corrélés)
+- [x] Passe QA finale : fallbacks robustes, scores échappés, commentaires mis à jour
+
+### Version 1.4 (prochaine)
 - [ ] Connexion Mautic via webhook
 - [ ] Page "Santé du plugin" admin
 - [ ] Log intention webhook
-- [ ] Génération PDF résultats
+- [ ] Tests E2E Webhook
 
 ### Version 2.0 (roadmap)
 - [ ] Traductions EN/ES

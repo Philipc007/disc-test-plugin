@@ -31,7 +31,8 @@
 - [x] **Parcours complet visiteur** ✅ — validé sur o2switch (2026-03-09)
 - [x] **Email reçu** ✅ — SMTP o2switch fonctionnel
 - [x] **Renvoi email admin** ✅ — fonctionnel en production
-- [ ] BDD : vérifier `consent_given` correct et `session_token` cohérent entre logs et résultat
+- [x] **Session token corrigé** ✅ — `generateSessionToken()` JS produit maintenant 64 chars hex, corrélation logs confirmée
+- [ ] BDD : vérifier `consent_given` correct en production
 - [ ] Webhook : tester payload JSON dans n8n/webhook.site
 - [ ] Cas d'erreur : webhook URL vide, soumission incomplète, double tentative
 
@@ -42,12 +43,31 @@
 - [x] **Tags CRM seuil 30%** ✅ — adapté à l'échelle relative
 - [x] **Pied de page email RGPD** ✅ — configurable admin, activable/désactivable, variables `{email_admin}` `{site_name}` `{first_name}` `{profil}`
 - [x] **Payload webhook enrichi** ✅ — `source`, `test_version`, `session_token`, `consent_given`, `locale`
-- [x] **Continuité session** ✅ — `session_token` frontend réutilisé côté PHP (validé `/^[0-9a-f]{64}$/`)
 - [x] **Validation stricte réponses** ✅ — count exact, IDs officiels, unicité, `most_like ≠ least_like`, `response_time >= 0`
 - [x] **`save_responses()` retourne le count** ✅ — échec partiel loggé
 - [x] **`send_results_email()` retour loggé** ✅ — `email_send_failed` en DB si échec
 - [x] **Vocabulaire "Tendance"** ✅ — email et graphique Chart.js
 - [x] **Graphique axe x max 60** ✅ — meilleure lisibilité scores relatifs
+
+### Développements v1.3 (2026-03-10)
+
+- [x] **Scoring +1/-1/0** ✅ — 14 blocs, scores indépendants, normalisation `round(((raw+14)/28)×100)` → 0–100
+- [x] **14 nouveaux blocs de questions** ✅ — banque psychométrique revue v1.3
+- [x] **Constantes centralisées** ✅ — `DISC_QUESTION_COUNT`, `DISC_CRM_TAG_THRESHOLD=60`, seuils profil dans `disc-test.php`
+- [x] **23 descriptions de profil** ✅ — synthesis / strengths / vigilance / advice + DISC + fallback générique
+- [x] **Indice de contraste** ✅ — 4 niveaux, affiché dans badge email et frontend
+- [x] **Titre profil contextualisé** ✅ — dominant/nuancé/équilibré selon rang réel des scores
+- [x] **Ordre réel des dimensions** ✅ — profil selon rang (pas ordre canonique D-I-S-C)
+- [x] **Cohérence basée sur question_order** ✅ — paires miroir robustes sur 14 blocs
+- [x] **reset_questions() admin** ✅ — TRUNCATE + réinsertion, sécurisé nonce, ne touche pas aux résultats
+- [x] **Email enrichi** ✅ — Points de vigilance (Bloc E), conseils complets (Bloc F), badge contraste
+- [x] **Scores `/100` dans l'email** ✅ — libellé "Vos scores DISC (sur 100)", `esc_html(intval(...))`
+- [x] **Session token 64 chars hex** ✅ — `window.crypto.getRandomValues()`, compatible regex PHP, logs corrélés
+- [x] **Fallbacks robustes email** ✅ — `!empty()` guards, `(array)` cast, `?? ''` sur toutes les clés
+- [x] **Chart.js frontend max=100** ✅ — `indexAxis:'y'`, tooltip `Score : X/100`
+- [x] **Header plugin v1.3.0** ✅ — `Version: 1.3.0` dans disc-test.php
+- [x] **Passe QA finale** ✅ — sécurité, robustesse, cohérence inter-fichiers, commentaires obsolètes corrigés
+- [x] **ZIP généré** ✅ — `disc-test.zip` (14 fichiers, 46 Ko)
 
 ### Corrections Audit Sécurité (2026-03-08)
 
@@ -678,7 +698,7 @@
 ### Décisions Validées
 
 - ✅ Capture APRÈS questions (pas avant)
-- ✅ 28 questions (validé Philippe)
+- ✅ 14 blocs ipsatifs v1.3 (scoring +1/-1/0, scores indépendants 0-100)
 - ✅ Email chiffré en BDD
 - ✅ Rate limiting 3/heure/IP
 - ✅ Design moderne gradient violet
@@ -706,5 +726,5 @@ Aucun bug connu actuellement - À compléter après tests
 ---
 
 **Dernière mise à jour** : 2026-03-10
-**Status global** : 🟢 v1.2 en ligne (o2switch) — Email ✅ — Mautic à connecter
-**Prochaine étape** : Test webhook Mautic + ouverture contrôlée
+**Status global** : 🟢 v1.3 packagé (ZIP prêt) — Scoring v1.3 ✅ — Email enrichi ✅ — Mautic à connecter
+**Prochaine étape** : Déploiement v1.3 sur o2switch + reset questions en BDD + test webhook Mautic

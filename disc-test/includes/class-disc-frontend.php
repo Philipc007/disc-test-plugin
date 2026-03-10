@@ -45,10 +45,11 @@ class DISC_Frontend {
         // Tag profil complet (ex: disc-di, disc-s, disc-disc)
         $tags[] = $prefix . '-' . strtolower($profile_type);
 
-        // Tags par dimension significative (score >= 30% dans l'échelle relative)
+        // Tags par dimension significative (score >= DISC_CRM_TAG_THRESHOLD sur échelle 0–100)
+        $crm_threshold = defined('DISC_CRM_TAG_THRESHOLD') ? DISC_CRM_TAG_THRESHOLD : 60;
         $dimensions = array('D', 'I', 'S', 'C');
         foreach ($dimensions as $dim) {
-            if ($scores[$dim] >= 30) {
+            if ($scores[$dim] >= $crm_threshold) {
                 $tags[] = $prefix . '-' . strtolower($dim);
             }
         }
@@ -199,43 +200,57 @@ class DISC_Frontend {
             }
         }
 
-        // Calcule les scores DISC — méthode ipsative alignée D4D
-        // Chaque question distribue 2 points : +2 (plus moi), -1 (moins moi), +0.5 × 2 (neutres)
-        // Somme totale sur 28 questions : 28 × 2 = 56 points entre les 4 axes
-        $scores         = array('D' => 0.0, 'I' => 0.0, 'S' => 0.0, 'C' => 0.0);
-        $all_dimensions = array('D', 'I', 'S', 'C');
+        // Calcule les scores DISC — v1.3
+        // Méthode : +1 (most_like) / -1 (least_like) / 0 (dimensions non choisies)
+        // Chaque dimension est indépendante — pas de répartition fermée.
+        // Normalisation par dimension : round(((raw + N) / (2*N)) * 100)
+        // où N = nombre de blocs (score brut min = -N, max = +N)
+        $question_count = count($official_questions); // 14 en v1.3
+        $raw_scores     = array('D' => 0, 'I' => 0, 'S' => 0, 'C' => 0);
         $response_times = array();
+
+        // Construit aussi un index par question_order pour le score de cohérence
+        $questions_by_id = array();
+        foreach ($official_questions as $oq) {
+            $questions_by_id[(int)$oq['id']] = $oq;
+        }
 
         foreach ($responses as $response) {
             $most_like  = strtoupper(sanitize_text_field($response['most_like'] ?? ''));
             $least_like = strtoupper(sanitize_text_field($response['least_like'] ?? ''));
 
-            $scores[$most_like]  += 2;
-            $scores[$least_like] -= 1;
+            $raw_scores[$most_like]  += 1;
+            $raw_scores[$least_like] -= 1;
+            // Les deux autres dimensions restent à 0 pour cette question
 
-            // +0.5 pour chacune des deux dimensions non choisies
-            foreach (array_diff($all_dimensions, array($most_like, $least_like)) as $neutral) {
-                $scores[$neutral] += 0.5;
-            }
+            // Injecte question_order dans la réponse pour le calcul de cohérence
+            $qid = intval($response['question_id'] ?? 0);
+            $response['question_order'] = isset($questions_by_id[$qid])
+                ? intval($questions_by_id[$qid]['question_order'])
+                : 0;
 
             $response_times[] = floatval($response['response_time'] ?? 0);
         }
 
-        // Convertit en scores relatifs (% du total — la somme des 4 vaut ~100)
-        $total_score = array_sum($scores);
-        if ($total_score > 0) {
-            foreach ($scores as $dim => $score) {
-                $scores[$dim] = round(($score / $total_score) * 100);
-            }
-        } else {
-            // Cas edge théoriquement impossible avec les neutres à +0.5
-            foreach ($scores as $dim => $score) {
-                $scores[$dim] = 25;
-            }
+        // Normalise chaque dimension indépendamment sur 0–100
+        // raw=-N → 0, raw=0 → 50, raw=+N → 100
+        $scores = array();
+        foreach ($raw_scores as $dim => $raw) {
+            $scores[$dim] = round((($raw + $question_count) / (2 * $question_count)) * 100);
         }
         
+        // Enrichit les réponses avec question_order pour le calcul de cohérence
+        $responses_with_order = array();
+        foreach ($responses as $response) {
+            $qid = intval($response['question_id'] ?? 0);
+            $response['question_order'] = isset($questions_by_id[$qid])
+                ? intval($questions_by_id[$qid]['question_order'])
+                : 0;
+            $responses_with_order[] = $response;
+        }
+
         // Calcule les métriques de qualité
-        $consistency_score = DISC_Security::calculate_consistency_score($responses);
+        $consistency_score = DISC_Security::calculate_consistency_score($responses_with_order);
         $average_response_time = !empty($response_times) ? array_sum($response_times) / count($response_times) : 0;
         $total_time = array_sum($response_times);
         

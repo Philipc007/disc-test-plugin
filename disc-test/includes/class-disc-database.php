@@ -107,7 +107,7 @@ class DISC_Database {
     
     /**
      * Insère les questions par défaut du test DISC
-     * 28 questions couvrant les 4 dimensions de manière équilibrée
+     * 14 blocs ipsatifs (v1.3) — chaque bloc contient 4 items D/I/S/C
      */
     public static function insert_default_questions() {
         global $wpdb;
@@ -118,37 +118,23 @@ class DISC_Database {
         if ($existing > 0) {
             return;
         }
-        
-        // Questions conçues selon la méthodologie DISC classique
+
+        // Questions v1.3 — 14 blocs ipsatifs
         $questions = array(
-            array('order' => 1, 'd' => "Je prends des décisions rapidement et avec confiance", 'i' => "J'établis facilement des relations avec de nouvelles personnes", 's' => "Je préfère travailler à un rythme stable et prévisible", 'c' => "J'analyse tous les détails avant d'agir"),
-            array('order' => 2, 'd' => "J'aime relever des défis et surmonter des obstacles", 'i' => "Je convaincs les autres par mon enthousiasme", 's' => "Je crée une atmosphère harmonieuse dans mon équipe", 'c' => "Je vérifie systématiquement la qualité de mon travail"),
-            array('order' => 3, 'd' => "Je me concentre sur l'atteinte des objectifs", 'i' => "Je m'exprime facilement et de manière expressive", 's' => "Je suis patient avec les autres", 'c' => "Je suis précis et méthodique dans mon approche"),
-            array('order' => 4, 'd' => "Je n'hésite pas à affronter les conflits", 'i' => "J'inspire et motive mon entourage", 's' => "Je suis loyal envers mon équipe", 'c' => "Je respecte scrupuleusement les règles et procédures"),
-            array('order' => 5, 'd' => "Je pousse les autres à atteindre de meilleurs résultats", 'i' => "Je vois le côté positif dans toute situation", 's' => "Je préfère collaborer plutôt que compétitionner", 'c' => "Je m'appuie sur des faits et des données"),
-            array('order' => 6, 'd' => "J'aime avoir le contrôle sur les situations", 'i' => "Je partage ouvertement mes émotions", 's' => "J'évite les changements brusques", 'c' => "Je suis consciencieux dans tout ce que je fais"),
-            array('order' => 7, 'd' => "Je vais droit au but dans mes communications", 'i' => "J'aime être au centre de l'attention", 's' => "Je suis accommodant et flexible avec les autres", 'c' => "Je pose beaucoup de questions pour bien comprendre"),
-            array('order' => 8, 'd' => "Je préfère l'action à la réflexion prolongée", 'i' => "Je génère facilement des idées créatives", 's' => "Je maintiens des routines stables", 'c' => "Je planifie soigneusement avant d'agir"),
-            array('order' => 9, 'd' => "J'accepte volontiers les responsabilités", 'i' => "Je persuade les autres de mon point de vue", 's' => "Je suis à l'écoute des besoins des autres", 'c' => "Je maintiens des standards élevés de qualité"),
-            array('order' => 10, 'd' => "Je suis compétitif et déterminé à gagner", 'i' => "Je crée facilement des liens sociaux", 's' => "Je suis fiable et constant", 'c' => "Je suis logique et analytique"),
-            array('order' => 11, 'd' => "Je n'ai pas peur de prendre des risques calculés", 'i' => "J'influence les autres par mon charisme", 's' => "Je privilégie la stabilité et la sécurité", 'c' => "Je vérifie l'exactitude de toute information"),
-            array('order' => 12, 'd' => "Je remets en question le statu quo", 'i' => "Je suis spontané et expressif", 's' => "Je suis patient face aux difficultés", 'c' => "Je suis minutieux et précis"),
-            array('order' => 13, 'd' => "Je préfère diriger plutôt que suivre", 'i' => "J'aime travailler en équipe et socialiser", 's' => "Je préfère les environnements calmes et prévisibles", 'c' => "Je suis systématique dans mon organisation"),
-            array('order' => 14, 'd' => "Je prends des décisions fermes", 'i' => "Je communique avec enthousiasme", 's' => "Je soutiens loyalement mes collègues", 'c' => "Je documente tout avec précision"),
-            array('order' => 15, 'd' => "Je suis orienté vers les résultats immédiats", 'i' => "Je suis optimiste et positif", 's' => "Je préfère les changements graduels", 'c' => "Je suis prudent et réfléchi"),
-            array('order' => 16, 'd' => "Je donne des directives claires", 'i' => "Je suis chaleureux et amical", 's' => "Je suis stable sous pression", 'c' => "Je suis objectif et impartial"),
-            array('order' => 17, 'd' => "J'aime les situations qui demandent de l'audace", 'i' => "J'exprime mes idées avec passion", 's' => "Je crée un environnement de travail harmonieux", 'c' => "J'analyse les risques avant d'avancer"),
-            array('order' => 18, 'd' => "Je suis direct dans mes feedbacks", 'i' => "Je motive les autres par mon énergie", 's' => "Je suis prévisible et constant", 'c' => "Je suis discipliné et rigoureux"),
-            array('order' => 19, 'd' => "Je recherche les opportunités de progression", 'i' => "Je crée facilement des relations de confiance", 's' => "Je préfère les tâches familières", 'c' => "Je m'assure que tout est en ordre"),
-            array('order' => 20, 'd' => "Je suis assertif dans mes communications", 'i' => "Je suis sociable et extraverti", 's' => "Je suis calme et posé", 'c' => "Je suis perfectionniste"),
-            array('order' => 21, 'd' => "J'impose le respect par ma force de caractère", 'i' => "J'attire les autres par ma personnalité", 's' => "Je préfère l'harmonie au conflit", 'c' => "Je suis méticuleux dans les détails"),
-            array('order' => 22, 'd' => "Je prends l'initiative sans attendre", 'i' => "Je communique mes émotions ouvertement", 's' => "Je maintiens des relations durables", 'c' => "Je suis consciencieux et diligent"),
-            array('order' => 23, 'd' => "J'aime les environnements compétitifs", 'i' => "J'aime recevoir de la reconnaissance", 's' => "Je suis diplomate dans mes interactions", 'c' => "Je respecte les normes établies"),
-            array('order' => 24, 'd' => "Je me concentre sur l'efficacité", 'i' => "Je suis créatif et imaginatif", 's' => "Je suis patient et persévérant", 'c' => "Je suis logique et rationnel"),
-            array('order' => 25, 'd' => "Je pousse pour obtenir des résultats", 'i' => "J'établis facilement un rapport avec les autres", 's' => "Je privilégie la coopération", 'c' => "Je suis prudent et réservé"),
-            array('order' => 26, 'd' => "Je défends mes positions avec fermeté", 'i' => "Je suis démonstratif et expressif", 's' => "Je suis loyal et dévoué", 'c' => "Je suis précis dans mes évaluations"),
-            array('order' => 27, 'd' => "J'accepte volontiers les défis difficiles", 'i' => "J'encourage et inspire mon équipe", 's' => "Je suis fiable dans mes engagements", 'c' => "Je suis systématique dans mon approche"),
-            array('order' => 28, 'd' => "Je suis déterminé à réussir", 'i' => "Je vois le potentiel dans chaque personne", 's' => "Je préfère la continuité au changement", 'c' => "Je suis exigeant sur la qualité")
+            array('order'=>1,  'd'=>"Je prends facilement les devants quand il faut décider vite.",              'i'=>"J'apporte spontanément de l'énergie dans les échanges.",           's'=>"Je reste présent et fiable dans la durée.",                        'c'=>"Je cherche à comprendre précisément avant d'agir."),
+            array('order'=>2,  'd'=>"J'aime relever les situations exigeantes ou complexes.",                    'i'=>"Je crée facilement du lien avec des personnes différentes.",        's'=>"Je prends le temps d'écouter avant de réagir.",                    'c'=>"J'accorde de l'importance à la rigueur dans l'exécution."),
+            array('order'=>3,  'd'=>"Je préfère avancer et ajuster ensuite si nécessaire.",                      'i'=>"J'aime entraîner les autres autour d'une idée.",                   's'=>"Je contribue à garder un climat calme et constructif.",            'c'=>"J'aime travailler avec méthode et clarté."),
+            array('order'=>4,  'd'=>"Je défends mes positions quand je pense qu'elles sont justes.",             'i'=>"J'exprime facilement mon enthousiasme.",                           's'=>"On peut compter sur moi pour maintenir la continuité.",            'c'=>"Je repère vite ce qui manque ou ce qui n'est pas cohérent."),
+            array('order'=>5,  'd'=>"Je suis stimulé par l'atteinte d'objectifs ambitieux.",                    'i'=>"J'aime convaincre et embarquer les autres.",                       's'=>"J'accorde de l'importance à la qualité de la relation.",           'c'=>"Je préfère vérifier les faits avant de conclure."),
+            array('order'=>6,  'd'=>"J'accepte facilement de trancher dans l'incertitude.",                     'i'=>"Je me sens à l'aise pour parler avec impact.",                     's'=>"Je garde généralement mon calme même sous pression.",             'c'=>"J'aime structurer les choses pour éviter les erreurs."),
+            array('order'=>7,  'd'=>"Je vais naturellement vers l'action plutôt que vers l'attente.",           'i'=>"J'aime encourager et valoriser les autres.",                       's'=>"Je cherche à construire des relations solides et durables.",       'c'=>"Je suis attentif aux détails qui font la qualité finale."),
+            array('order'=>8,  'd'=>"J'aime avoir de la latitude pour décider par moi-même.",                   'i'=>"J'entre facilement en contact dans un nouveau groupe.",             's'=>"J'apprécie les collaborations stables et fluides.",                'c'=>"Je préfère un cadre clair quand il faut produire un travail fiable."),
+            array('order'=>9,  'd'=>"Je peux être direct quand il faut faire avancer les choses.",               'i'=>"J'aime partager une vision ou une possibilité enthousiasmante.",   's'=>"Je fais preuve de patience dans l'accompagnement des autres.",     'c'=>"Je prends du recul pour analyser avant de m'engager."),
+            array('order'=>10, 'd'=>"Je me sens responsable d'impulser un mouvement.",                          'i'=>"J'aime être au contact et faire circuler les idées.",              's'=>"Je contribue à rendre les échanges plus sereins.",                 'c'=>"J'aime quand les attentes et critères sont explicites."),
+            array('order'=>11, 'd'=>"Je préfère un cap clair et une décision assumée.",                         'i'=>"J'aime mobiliser les autres autour d'un projet.",                  's'=>"Je suis constant dans mon implication.",                          'c'=>"Je suis exigeant sur la qualité du raisonnement."),
+            array('order'=>12, 'd'=>"Je supporte bien la confrontation quand elle est utile.",                   'i'=>"Je rends les échanges plus vivants et engageants.",                's'=>"Je facilite la coopération dans un groupe.",                      'c'=>"Je remarque facilement les zones floues ou imprécises."),
+            array('order'=>13, 'd'=>"Je préfère agir sur les problèmes plutôt que les subir.",                  'i'=>"J'aime donner confiance et motiver.",                              's'=>"J'avance avec régularité sans me disperser.",                     'c'=>"Je cherche des standards fiables pour bien faire."),
+            array('order'=>14, 'd'=>"Je suis orienté vers le résultat et la progression.",                      'i'=>"J'aime influencer positivement l'ambiance et les relations.",     's'=>"Je privilégie une progression solide plutôt que précipitée.",     'c'=>"Je veille à la cohérence d'ensemble avant de valider."),
         );
         
         foreach ($questions as $q) {
@@ -363,7 +349,7 @@ class DISC_Database {
     public static function log_event($event_type, $details = null, $session_token = null) {
         global $wpdb;
         $table = $wpdb->prefix . 'disc_audit_logs';
-        
+
         $wpdb->insert(
             $table,
             array(
@@ -375,5 +361,29 @@ class DISC_Database {
             ),
             array('%s', '%d', '%s', '%s', '%s')
         );
+    }
+
+    /**
+     * Réinitialise la banque de questions avec les 14 blocs v1.3
+     * Action explicite admin — ne pas appeler automatiquement
+     */
+    public static function reset_questions() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'disc_questions';
+        $wpdb->query("TRUNCATE TABLE $table");
+        // Force réinsertion en vidant la table d'abord
+        self::insert_default_questions();
+        return $wpdb->get_var("SELECT COUNT(*) FROM $table");
+    }
+
+    /**
+     * Supprime tous les résultats de test (résultats + réponses + logs)
+     * Action explicite admin — ne pas appeler automatiquement
+     */
+    public static function reset_test_data() {
+        global $wpdb;
+        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}disc_results");
+        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}disc_responses");
+        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}disc_audit_logs");
     }
 }

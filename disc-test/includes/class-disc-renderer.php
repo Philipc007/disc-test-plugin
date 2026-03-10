@@ -261,255 +261,492 @@ class DISC_Renderer {
     }
     
     /**
-     * Génère la description détaillée d'un profil DISC
-     */
-    public static function get_profile_description($profile_type, $scores) {
-        $descriptions = array(
-            'D' => array(
-                'title' => __('Dominance Élevée', 'disc-test'),
-                'subtitle' => __('Le Leader Décisif', 'disc-test'),
-                'description' => __('Vous êtes un leader naturel, orienté résultats et action. Vous prenez des décisions rapidement et n\'hésitez pas à prendre des risques calculés. Votre force réside dans votre capacité à voir la vue d\'ensemble et à mobiliser les ressources pour atteindre vos objectifs.', 'disc-test'),
-                'strengths' => array(
-                    __('Prise de décision rapide et efficace', 'disc-test'),
-                    __('Orientation forte vers les résultats', 'disc-test'),
-                    __('Capacité à gérer la pression', 'disc-test'),
-                    __('Initiative et proactivité naturelles', 'disc-test')
-                ),
-                'challenges' => array(
-                    __('Peut paraître trop direct ou autoritaire', 'disc-test'),
-                    __('Risque d\'impatience avec les processus lents', 'disc-test'),
-                    __('Peut négliger les aspects relationnels', 'disc-test')
-                ),
-                'development' => __('Développez votre écoute active et prenez le temps de considérer les perspectives des autres. Apprenez à déléguer et à faire confiance à votre équipe.', 'disc-test')
-            ),
-            'I' => array(
-                'title' => __('Influence Élevée', 'disc-test'),
-                'subtitle' => __('Le Leader Inspirant', 'disc-test'),
-                'description' => __('Vous êtes un communicateur charismatique qui inspire et motive naturellement les autres. Votre enthousiasme est contagieux et vous excellez dans la création de relations solides. Vous voyez le potentiel dans chaque personne et situation.', 'disc-test'),
-                'strengths' => array(
-                    __('Excellent communicateur et persuasif', 'disc-test'),
-                    __('Capacité à motiver et inspirer les équipes', 'disc-test'),
-                    __('Créativité et innovation', 'disc-test'),
-                    __('Optimisme et énergie positive', 'disc-test')
-                ),
-                'challenges' => array(
-                    __('Peut manquer de suivi sur les détails', 'disc-test'),
-                    __('Risque de sur-engagement', 'disc-test'),
-                    __('Peut éviter les conflits nécessaires', 'disc-test')
-                ),
-                'development' => __('Renforcez votre discipline dans le suivi des projets. Développez des systèmes pour ne pas perdre de vue les détails importants.', 'disc-test')
-            ),
-            'S' => array(
-                'title' => __('Stabilité Élevée', 'disc-test'),
-                'subtitle' => __('Le Leader Collaboratif', 'disc-test'),
-                'description' => __('Vous êtes un leader patient et fiable qui crée un environnement de travail harmonieux. Votre approche calme et votre loyauté inspirent la confiance. Vous excellez dans le maintien de relations durables et la création de cohésion d\'équipe.', 'disc-test'),
-                'strengths' => array(
-                    __('Excellente capacité d\'écoute', 'disc-test'),
-                    __('Patience et persévérance', 'disc-test'),
-                    __('Création d\'un environnement stable', 'disc-test'),
-                    __('Loyauté et fiabilité', 'disc-test')
-                ),
-                'challenges' => array(
-                    __('Peut résister au changement', 'disc-test'),
-                    __('Difficulté à dire non', 'disc-test'),
-                    __('Peut éviter les conflits nécessaires', 'disc-test')
-                ),
-                'development' => __('Acceptez que le changement est parfois nécessaire pour la croissance. Pratiquez l\'assertivité et fixez des limites claires.', 'disc-test')
-            ),
-            'C' => array(
-                'title' => __('Conformité Élevée', 'disc-test'),
-                'subtitle' => __('Le Leader Analytique', 'disc-test'),
-                'description' => __('Vous êtes un leader méthodique qui prend des décisions basées sur des faits et des analyses approfondies. Votre attention aux détails et vos standards élevés garantissent une qualité exceptionnelle. Vous excellez dans la planification et la gestion des risques.', 'disc-test'),
-                'strengths' => array(
-                    __('Analyse approfondie et pensée critique', 'disc-test'),
-                    __('Standards élevés de qualité', 'disc-test'),
-                    __('Organisation et planification rigoureuses', 'disc-test'),
-                    __('Objectivité et logique', 'disc-test')
-                ),
-                'challenges' => array(
-                    __('Peut être perçu comme trop critique', 'disc-test'),
-                    __('Risque de paralysie par l\'analyse', 'disc-test'),
-                    __('Peut avoir du mal à déléguer', 'disc-test')
-                ),
-                'development' => __('Apprenez à accepter l\'imperfection et à faire confiance à votre intuition. Équilibrez l\'analyse avec l\'action.', 'disc-test')
-            ),
-            'DI' => array(
-                'title' => __('Dominance + Influence', 'disc-test'),
-                'subtitle' => __('Le Leader Visionnaire', 'disc-test'),
-                'description' => __('Vous combinez l\'orientation résultats avec un charisme naturel. Vous êtes un leader dynamique qui inspire l\'action tout en maintenant le focus sur les objectifs.', 'disc-test'),
-                'strengths' => array(
-                    __('Leadership charismatique et décisif', 'disc-test'),
-                    __('Capacité à mobiliser et motiver', 'disc-test'),
-                    __('Vision stratégique claire', 'disc-test')
-                ),
-                'challenges' => array(
-                    __('Peut être trop impulsif', 'disc-test'),
-                    __('Risque de négliger les détails', 'disc-test')
-                ),
-                'development' => __('Pratiquez l\'écoute active et donnez de l\'espace aux autres. Équilibrez votre vision avec l\'attention aux détails.', 'disc-test')
-            ),
-            'DS' => array(
-                'title' => __('Dominance + Stabilité', 'disc-test'),
-                'subtitle' => __('Le Leader Déterminé', 'disc-test'),
-                'description' => __('Vous combinez la détermination avec la patience. Vous poursuivez vos objectifs de manière méthodique et persistante.', 'disc-test'),
-                'strengths' => array(
-                    __('Persévérance et ténacité', 'disc-test'),
-                    __('Leadership calme mais ferme', 'disc-test'),
-                    __('Fiabilité dans l\'atteinte des objectifs', 'disc-test')
-                ),
-                'challenges' => array(
-                    __('Peut être têtu', 'disc-test'),
-                    __('Résistance au changement', 'disc-test')
-                ),
-                'development' => __('Restez ouvert aux nouvelles approches. Développez votre agilité dans les situations changeantes.', 'disc-test')
-            ),
-            'DC' => array(
-                'title' => __('Dominance + Conformité', 'disc-test'),
-                'subtitle' => __('Le Leader Stratégique', 'disc-test'),
-                'description' => __('Vous combinez l\'orientation résultats avec une approche analytique rigoureuse. Vous prenez des décisions basées sur des données.', 'disc-test'),
-                'strengths' => array(
-                    __('Décisions stratégiques basées sur les faits', 'disc-test'),
-                    __('Standards élevés d\'excellence', 'disc-test'),
-                    __('Planification détaillée', 'disc-test')
-                ),
-                'challenges' => array(
-                    __('Peut être perçu comme distant', 'disc-test'),
-                    __('Risque de perfectionnisme excessif', 'disc-test')
-                ),
-                'development' => __('Développez votre intelligence émotionnelle. Célébrez les progrès, pas seulement les résultats parfaits.', 'disc-test')
-            ),
-            'IS' => array(
-                'title' => __('Influence + Stabilité', 'disc-test'),
-                'subtitle' => __('Le Leader Bienveillant', 'disc-test'),
-                'description' => __('Vous créez des environnements où les gens se sentent valorisés et soutenus. Vous combinez l\'enthousiasme avec la patience.', 'disc-test'),
-                'strengths' => array(
-                    __('Relations authentiques et durables', 'disc-test'),
-                    __('Environnement positif et collaboratif', 'disc-test'),
-                    __('Excellente écoute empathique', 'disc-test')
-                ),
-                'challenges' => array(
-                    __('Peut éviter les confrontations nécessaires', 'disc-test'),
-                    __('Difficulté à donner du feedback négatif', 'disc-test')
-                ),
-                'development' => __('Pratiquez les conversations difficiles. Le feedback constructif est une forme de respect.', 'disc-test')
-            ),
-            'IC' => array(
-                'title' => __('Influence + Conformité', 'disc-test'),
-                'subtitle' => __('Le Leader Persuasif', 'disc-test'),
-                'description' => __('Vous combinez le charisme avec l\'attention aux détails. Vous excellez à convaincre par des arguments documentés.', 'disc-test'),
-                'strengths' => array(
-                    __('Présentations convaincantes et structurées', 'disc-test'),
-                    __('Créativité basée sur la recherche', 'disc-test'),
-                    __('Communication claire et documentée', 'disc-test')
-                ),
-                'challenges' => array(
-                    __('Peut être perfectionniste dans la communication', 'disc-test'),
-                    __('Risque de sur-préparation', 'disc-test')
-                ),
-                'development' => __('Acceptez que l\'imperfection fait partie du processus créatif. Développez votre résilience.', 'disc-test')
-            ),
-            'SC' => array(
-                'title' => __('Stabilité + Conformité', 'disc-test'),
-                'subtitle' => __('Le Leader Méthodique', 'disc-test'),
-                'description' => __('Vous créez des systèmes fiables et durables. Vous combinez la loyauté avec des standards élevés.', 'disc-test'),
-                'strengths' => array(
-                    __('Processus solides et bien documentés', 'disc-test'),
-                    __('Fiabilité et cohérence exceptionnelles', 'disc-test'),
-                    __('Patience dans l\'amélioration continue', 'disc-test')
-                ),
-                'challenges' => array(
-                    __('Peut résister au changement', 'disc-test'),
-                    __('Risque de paralysie par l\'analyse', 'disc-test')
-                ),
-                'development' => __('Embrassez le changement comme opportunité. Développez votre confiance dans la prise de décisions.', 'disc-test')
-            ),
-            'DIS' => array(
-                'title' => __('Dominance + Influence + Stabilité', 'disc-test'),
-                'subtitle' => __('Le Leader Équilibré', 'disc-test'),
-                'description' => __('Vous démontrez un équilibre remarquable entre l\'action, la persuasion et la collaboration. Votre adaptabilité est votre force.', 'disc-test'),
-                'strengths' => array(
-                    __('Grande adaptabilité de style', 'disc-test'),
-                    __('Leadership situationnel efficace', 'disc-test'),
-                    __('Polyvalence dans les approches', 'disc-test')
-                ),
-                'challenges' => array(
-                    __('Peut manquer de spécialisation', 'disc-test'),
-                    __('Risque de dilution du focus', 'disc-test')
-                ),
-                'development' => __('Identifiez votre "super-pouvoir" principal et développez-le. La polyvalence nécessite aussi de la profondeur.', 'disc-test')
-            ),
-            'DISC' => array(
-                'title' => __('Profil Complet DISC', 'disc-test'),
-                'subtitle' => __('Le Leader Universel', 'disc-test'),
-                'description' => __('Vous démontrez toutes les dimensions du DISC de manière équilibrée. Vous vous adaptez à pratiquement toute situation.', 'disc-test'),
-                'strengths' => array(
-                    __('Adaptabilité exceptionnelle', 'disc-test'),
-                    __('Compréhension approfondie des différents styles', 'disc-test'),
-                    __('Leadership transformationnel', 'disc-test')
-                ),
-                'challenges' => array(
-                    __('Risque de sur-adaptation', 'disc-test'),
-                    __('Peut perdre son authenticité', 'disc-test')
-                ),
-                'development' => __('Restez fidèle à vos valeurs profondes tout en utilisant votre flexibilité.', 'disc-test')
-            )
-        );
-        
-        return $descriptions[$profile_type] ?? $descriptions['D'];
-    }
-    
-    /**
-     * Détermine le profil dominant basé sur les scores relatifs (%)
+     * Détermine le type de profil à partir des scores normalisés (0–100 indépendants)
      *
-     * Logique ipsative alignée D4D :
-     *   - Profil équilibré (DISC) : écart-type des 4 scores < SEUIL_EQUILIBRE (défaut 4)
-     *   - Profil simple (D) : écart top1-top2 > SEUIL_DOUBLE (défaut 5)
-     *   - Profil triple (DIS) : écart top1-top2 <= SEUIL_DOUBLE ET écart top2-top3 <= SEUIL_DOUBLE
-     *   - Profil double (DI) : tous les autres cas
+     * Seuils (configurables via constantes dans disc-test.php ou wp-config.php) :
+     *   DISC_PROFILE_BALANCED_CONTRAST (14) : contrast max pour profil équilibré
+     *   DISC_PROFILE_SIMPLE_GAP        (10) : écart min rank1-rank2 pour profil simple
+     *   DISC_PROFILE_NUANCED_RANGE     (8)  : plage max des 3 premiers pour profil nuancé
      *
-     * Constantes configurables dans wp-config.php :
-     *   define('DISC_SEUIL_DOUBLE',    5);   // points % d'écart max pour profil double
-     *   define('DISC_SEUIL_EQUILIBRE', 4);   // écart-type max pour profil équilibré
+     * L'ordre des lettres reflète l'ordre réel des scores (pas l'ordre canonique D-I-S-C).
      */
     public static function determine_profile_type($scores) {
-        $seuil_double    = defined('DISC_SEUIL_DOUBLE')    ? DISC_SEUIL_DOUBLE    : 5;
-        $seuil_equilibre = defined('DISC_SEUIL_EQUILIBRE') ? DISC_SEUIL_EQUILIBRE : 4;
+        $balanced_contrast = defined('DISC_PROFILE_BALANCED_CONTRAST') ? DISC_PROFILE_BALANCED_CONTRAST : 14;
+        $simple_gap        = defined('DISC_PROFILE_SIMPLE_GAP')        ? DISC_PROFILE_SIMPLE_GAP        : 10;
+        $nuanced_range     = defined('DISC_PROFILE_NUANCED_RANGE')     ? DISC_PROFILE_NUANCED_RANGE     : 8;
 
+        // Trie par score décroissant
         arsort($scores);
         $dims = array_keys($scores);
         $vals = array_values($scores);
 
-        // Calcule l'écart-type pour détecter un profil équilibré
-        $mean     = array_sum($vals) / 4;
-        $variance = array_sum(array_map(function($v) use ($mean) {
-            return pow($v - $mean, 2);
-        }, $vals)) / 4;
-        $std_dev = sqrt($variance);
+        $contrast  = $vals[0] - $vals[3]; // max - min
+        $ecart_1_2 = $vals[0] - $vals[1];
+        $range_top3 = $vals[0] - $vals[2]; // écart entre rank-1 et rank-3
 
-        if ($std_dev < $seuil_equilibre) {
+        // 1. Profil équilibré : contraste global faible
+        if ($contrast <= $balanced_contrast) {
             return 'DISC';
         }
 
-        $ecart_1_2 = $vals[0] - $vals[1];
-        $ecart_2_3 = $vals[1] - $vals[2];
-
-        if ($ecart_1_2 > $seuil_double) {
-            // La dimension 1 se détache nettement → profil simple
-            $selected = array($dims[0]);
-        } elseif ($ecart_2_3 <= $seuil_double) {
-            // Les 3 premières sont proches → profil triple
-            $selected = array($dims[0], $dims[1], $dims[2]);
-        } else {
-            // Les 2 premières sont proches → profil double
-            $selected = array($dims[0], $dims[1]);
+        // 2. Profil simple : la dimension dominante se détache nettement
+        if ($ecart_1_2 >= $simple_gap) {
+            return $dims[0];
         }
 
-        // Retourne les lettres dans l'ordre canonique D-I-S-C
-        $disc_order = array('D' => 0, 'I' => 1, 'S' => 2, 'C' => 3);
-        usort($selected, function($a, $b) use ($disc_order) {
-            return $disc_order[$a] - $disc_order[$b];
-        });
+        // 3. Profil nuancé : les 3 premiers tiennent dans une plage de 8 pts
+        if ($range_top3 <= $nuanced_range) {
+            return $dims[0] . $dims[1] . $dims[2];
+        }
 
-        return implode('', $selected);
+        // 4. Profil combiné : les 2 premiers sont proches
+        return $dims[0] . $dims[1];
+    }
+
+    /**
+     * Retourne le niveau de contraste du profil
+     * Basé sur contrast = max(scores) - min(scores)
+     */
+    public static function get_contrast_level($contrast) {
+        if ($contrast <= 14) return array('label' => 'équilibré',              'key' => 'balanced');
+        if ($contrast <= 29) return array('label' => 'modérément contrasté',   'key' => 'moderate');
+        if ($contrast <= 44) return array('label' => 'contrasté',              'key' => 'high');
+        return                      array('label' => 'très contrasté',         'key' => 'very_high');
+    }
+
+    /**
+     * Génère le titre du profil (BLOC A de la restitution)
+     */
+    public static function get_profile_title($profile_type) {
+        $len = strlen($profile_type);
+        if ($profile_type === 'DISC') {
+            return __('Votre profil DISC apparaît équilibré', 'disc-test');
+        }
+        if ($len === 1) {
+            return sprintf(__('Votre profil DISC dominant : %s', 'disc-test'), $profile_type);
+        }
+        if ($len === 2) {
+            return sprintf(
+                __('Votre profil DISC dominant : %s, avec une nuance secondaire %s', 'disc-test'),
+                $profile_type[0], $profile_type[1]
+            );
+        }
+        return sprintf(__('Votre profil DISC nuancé : %s', 'disc-test'), $profile_type);
+    }
+
+    /**
+     * Retourne la description complète d'un profil DISC
+     * Structure : title (A), synthesis (B), strengths (D), vigilance (E), advice (F)
+     * Le bloc C (scores graphique) est géré par la couche d'affichage.
+     *
+     * @param string $profile_type  Profil détecté (ex : I, DI, IDS, DISC)
+     * @param array  $scores        Scores normalisés 0–100 par dimension
+     * @return array
+     */
+    public static function get_profile_description($profile_type, $scores) {
+        $contrast       = max($scores) - min($scores);
+        $contrast_info  = self::get_contrast_level($contrast);
+        $profile_title  = self::get_profile_title($profile_type);
+
+        $descriptions = array(
+
+            'D' => array(
+                'synthesis'  => __("Votre profil met en avant une forte orientation vers l'action et les résultats. Vous prenez les décisions avec assurance et aimez tenir la barre, même dans l'incertitude. Votre dynamisme est un moteur pour votre entourage.", 'disc-test'),
+                'strengths'  => array(
+                    __('Capacité à décider vite et à assumer les choix', 'disc-test'),
+                    __('Énergie pour impulser et faire avancer les projets', 'disc-test'),
+                    __('Résistance à la pression et goût du défi', 'disc-test'),
+                    __('Leadership naturel dans les situations exigeantes', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __("Tendance à aller vite, parfois au détriment de l'écoute", 'disc-test'),
+                    __('Risque de sous-estimer les besoins relationnels de l'équipe', 'disc-test'),
+                    __('Impatience face aux processus lents ou aux hésitations', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __("Prenez le temps d'associer votre équipe aux décisions importantes.", 'disc-test'),
+                    __('Développez votre écoute active pour capter les signaux faibles.', 'disc-test'),
+                    __('Célébrez les étapes intermédiaires, pas seulement les résultats finaux.', 'disc-test'),
+                ),
+            ),
+
+            'I' => array(
+                'synthesis'  => __("Votre profil met en avant une forte capacité à créer du lien, à entraîner les autres et à faire circuler l'énergie dans un groupe. Vous êtes à l'aise pour convaincre, inspirer et donner confiance. Votre enthousiasme est souvent contagieux.", 'disc-test'),
+                'strengths'  => array(
+                    __('Aisance relationnelle et capacité à fédérer', 'disc-test'),
+                    __('Communication naturelle et impact à l'oral', 'disc-test'),
+                    __('Capacité à motiver et à insuffler de l'optimisme', 'disc-test'),
+                    __('Créativité dans les échanges et ouverture aux idées nouvelles', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Tendance à sur-s'engager ou à disperser son énergie', 'disc-test'),
+                    __('Risque de manquer de suivi sur les détails et les livrables', 'disc-test'),
+                    __('Difficulté à dire non ou à gérer des conversations difficiles', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Mettez en place des systèmes simples pour suivre vos engagements.', 'disc-test'),
+                    __('Travaillez votre assertivité : dire ce qui ne va pas est aussi une forme de respect.', 'disc-test'),
+                    __('Associez-vous à des profils plus structurants pour équilibrer votre style.', 'disc-test'),
+                ),
+            ),
+
+            'S' => array(
+                'synthesis'  => __("Votre profil met en avant une grande fiabilité, une capacité d'écoute et un sens profond de la coopération. Vous apportez de la stabilité à votre environnement et vous engagez sur la durée. Votre présence rassure et fédère.", 'disc-test'),
+                'strengths'  => array(
+                    __('Constance et fiabilité dans les engagements pris', 'disc-test'),
+                    __('Écoute authentique et capacité à créer un climat de confiance', 'disc-test'),
+                    __('Patience et persévérance dans les projets longs', 'disc-test'),
+                    __('Facilitation naturelle de la coopération dans un groupe', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Résistance au changement et inconfort face aux ruptures', 'disc-test'),
+                    __('Tendance à accepter des situations insatisfaisantes pour préserver l'harmonie', 'disc-test'),
+                    __("Difficulté à s'affirmer ou à défendre son point de vue", 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Pratiquez l'assertivité : vos besoins et opinions ont de la valeur.', 'disc-test'),
+                    __('Acceptez que le changement puisse être une ressource, pas seulement une contrainte.', 'disc-test'),
+                    __('Fixez des limites claires pour protéger votre énergie et votre espace.', 'disc-test'),
+                ),
+            ),
+
+            'C' => array(
+                'synthesis'  => __("Votre profil met en avant une grande rigueur analytique et un sens élevé de la qualité. Vous aimez comprendre en profondeur, structurer l'information et travailler avec des critères explicites. Votre exigence est un gage de fiabilité.", 'disc-test'),
+                'strengths'  => array(
+                    __('Pensée analytique et capacité à repérer les incohérences', 'disc-test'),
+                    __('Standards élevés de qualité et d'exactitude', 'disc-test'),
+                    __('Rigueur dans la planification et l'organisation', 'disc-test'),
+                    __('Recul objectif face aux situations complexes', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Tendance à la sur-analyse pouvant freiner la prise de décision', 'disc-test'),
+                    __('Exigence parfois difficile à vivre pour l'entourage', 'disc-test'),
+                    __('Inconfort face à l'ambiguïté ou aux zones grises', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Acceptez que l'imperfection fait partie du processus — avancer vaut parfois mieux qu'attendre.', 'disc-test'),
+                    __('Dosez votre exigence en fonction de l'enjeu réel de chaque situation.', 'disc-test'),
+                    __('Exprimez vos analyses de façon accessible pour ne pas être perçu comme trop critique.', 'disc-test'),
+                ),
+            ),
+
+            'DI' => array(
+                'synthesis'  => __("Votre profil combine une forte orientation résultats et une réelle capacité à embarquer les autres. Vous avancez avec assurance tout en sachant mobiliser et convaincre. Ce duo fait de vous un leader à la fois décisif et inspirant.", 'disc-test'),
+                'strengths'  => array(
+                    __('Leadership dynamique, capable d'initier et d'entraîner', 'disc-test'),
+                    __('Aisance à prendre des décisions et à les faire accepter', 'disc-test'),
+                    __('Énergie communicative dans les moments-clés', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Risque d'impulsivité — agir avant d'avoir pleinement écouté', 'disc-test'),
+                    __('Tendance à négliger les profils plus lents ou plus prudents', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Veillez à intégrer les points de vue plus posés avant de trancher.', 'disc-test'),
+                    __('Faites de la place aux profils S et C dans votre équipe — ils vous complètent.', 'disc-test'),
+                ),
+            ),
+
+            'ID' => array(
+                'synthesis'  => __("Votre profil combine un fort sens du contact humain et une capacité à impulser l'action. Vous inspirez les autres et savez aussi faire avancer les choses quand c'est nécessaire. Vous associez l'enthousiasme à la détermination.", 'disc-test'),
+                'strengths'  => array(
+                    __('Capacité à rallier et à mettre en mouvement', 'disc-test'),
+                    __('Aisance relationnelle doublée d'un sens du résultat', 'disc-test'),
+                    __('Influence positive sur l'ambiance et la dynamique de groupe', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Tendance à manquer de rigueur dans le suivi opérationnel', 'disc-test'),
+                    __('Risque de vouloir faire trop vite sans impliquer suffisamment', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Structurez vos idées avant de les partager pour plus d'impact.', 'disc-test'),
+                    __('Entourez-vous de profils C ou S pour équilibrer votre style.', 'disc-test'),
+                ),
+            ),
+
+            'DS' => array(
+                'synthesis'  => __("Votre profil associe la détermination à la constance. Vous avancez vers vos objectifs avec ténacité, sans relâche, en maintenant un cap clair. Vous êtes fiable dans l'effort comme dans la décision.", 'disc-test'),
+                'strengths'  => array(
+                    __('Persévérance et capacité à tenir un effort dans la durée', 'disc-test'),
+                    __('Leadership stable, ancré dans les faits et les résultats', 'disc-test'),
+                    __('Fiabilité dans les engagements pris', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Tendance à la rigidité face aux changements de cap nécessaires', 'disc-test'),
+                    __('Risque de sous-estimer l'importance du collectif et de la communication', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Cultivez votre agilité : parfois changer de route est un signe de force.', 'disc-test'),
+                    __('Investissez dans la qualité des relations, pas seulement dans les résultats.', 'disc-test'),
+                ),
+            ),
+
+            'SD' => array(
+                'synthesis'  => __("Votre profil associe une grande stabilité à une capacité d'action quand la situation l'exige. Vous préférez avancer avec méthode, mais vous savez décider quand c'est nécessaire. Vous inspirez confiance par votre calme et votre détermination.", 'disc-test'),
+                'strengths'  => array(
+                    __('Capacité à tenir la durée sans perdre de vue les objectifs', 'disc-test'),
+                    __('Style de leadership rassurant et orienté résultats', 'disc-test'),
+                    __('Fiabilité et solidité dans les moments de tension', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Risque de rester trop longtemps dans une situation qui nécessite une rupture', 'disc-test'),
+                    __('Tendance à sous-communiquer sur les orientations prises', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('N'attendez pas que la situation se dégrade pour prendre position.', 'disc-test'),
+                    __('Partagez vos réflexions plus tôt pour favoriser l'alignement.', 'disc-test'),
+                ),
+            ),
+
+            'DC' => array(
+                'synthesis'  => __("Votre profil combine une forte orientation résultats avec un souci de rigueur et de qualité. Vous prenez des décisions stratégiques basées sur des faits solides. Vous êtes à la fois exigeant et efficace.", 'disc-test'),
+                'strengths'  => array(
+                    __('Prise de décision fondée sur l'analyse et les faits', 'disc-test'),
+                    __('Standards élevés d'excellence dans l'action', 'disc-test'),
+                    __('Capacité à structurer une vision et à la déployer avec rigueur', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Risque de paraître froid ou distant dans les relations', 'disc-test'),
+                    __('Tendance au perfectionnisme pouvant freiner l'exécution', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Développez votre intelligence émotionnelle pour mieux connecter avec votre équipe.', 'disc-test'),
+                    __('Acceptez le "suffisamment bon" quand l'enjeu ne justifie pas la perfection.', 'disc-test'),
+                ),
+            ),
+
+            'CD' => array(
+                'synthesis'  => __("Votre profil associe une grande rigueur analytique à une vraie capacité d'action. Vous aimez comprendre en profondeur avant d'agir, et quand vous décidez, vous assumez pleinement. Votre crédibilité repose sur la solidité de vos analyses.", 'disc-test'),
+                'strengths'  => array(
+                    __('Rigueur analytique couplée à une capacité de décision', 'disc-test'),
+                    __('Crédibilité par la qualité du raisonnement et des résultats', 'disc-test'),
+                    __('Autonomie et sens des responsabilités', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Risque d'aller seul, sans suffisamment impliquer les autres', 'disc-test'),
+                    __('Tendance à l'exigence difficile à vivre pour l'entourage', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Partagez votre raisonnement pour embarquer, pas seulement pour informer.', 'disc-test'),
+                    __('Valorisez les contributions des autres même quand elles sont imparfaites.', 'disc-test'),
+                ),
+            ),
+
+            'IS' => array(
+                'synthesis'  => __("Votre profil combine un fort sens du contact humain avec une capacité d'écoute et de soutien. Vous créez des environnements où les gens se sentent valorisés et soutenus. Vous associez l'enthousiasme à la patience.", 'disc-test'),
+                'strengths'  => array(
+                    __('Relations authentiques et durables', 'disc-test'),
+                    __('Capacité à créer un environnement positif et collaboratif', 'disc-test'),
+                    __('Écoute active et empathie naturelle', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Tendance à éviter les confrontations nécessaires', 'disc-test'),
+                    __('Difficulté à donner des feedbacks négatifs malgré les besoins réels', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Pratiquez les conversations difficiles — elles sont souvent nécessaires pour progresser.', 'disc-test'),
+                    __('Différenciez l'harmonie superficielle de la coopération réelle.', 'disc-test'),
+                ),
+            ),
+
+            'SI' => array(
+                'synthesis'  => __("Votre profil associe une grande stabilité relationnelle à une réelle capacité d'influence. Vous êtes à l'aise pour construire des relations durables et pour mobiliser les autres autour d'un projet commun. Vous agissez avec douceur mais avec conviction.", 'disc-test'),
+                'strengths'  => array(
+                    __('Construction de relations solides et de confiance mutuelle', 'disc-test'),
+                    __('Capacité à rassembler et à maintenir la cohésion', 'disc-test'),
+                    __('Influence par la régularité et la bienveillance', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Risque de rester trop consensuel face à des décisions difficiles', 'disc-test'),
+                    __('Tendance à sur-adapter son style aux attentes des autres', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Affirmez votre point de vue même quand il dérange — c'est aussi servir les autres.', 'disc-test'),
+                    __('Fixez un cap clair plutôt que de vous adapter en permanence.', 'disc-test'),
+                ),
+            ),
+
+            'IC' => array(
+                'synthesis'  => __("Votre profil combine le charisme et l'attention aux détails. Vous êtes convaincant parce que vous maîtrisez votre sujet. Vous associez l'enthousiasme à la rigueur pour produire des communications percutantes et solides.", 'disc-test'),
+                'strengths'  => array(
+                    __('Présentations convaincantes et bien documentées', 'disc-test'),
+                    __('Créativité ancrée dans la recherche et les faits', 'disc-test'),
+                    __('Communication claire, structurée et engageante', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Tendance à la sur-préparation qui peut freiner l'action', 'disc-test'),
+                    __('Risque de perfectionnisme dans la forme au détriment du fond', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Acceptez de livrer avant d'avoir tout peaufiné.', 'disc-test'),
+                    __('Distinguez les situations où la qualité prime et celles où la rapidité suffit.', 'disc-test'),
+                ),
+            ),
+
+            'CI' => array(
+                'synthesis'  => __("Votre profil associe une grande rigueur analytique à une réelle capacité de communication. Vous aimez comprendre en profondeur et vous savez aussi partager vos analyses de façon engageante. Votre crédibilité est renforcée par votre clarté.", 'disc-test'),
+                'strengths'  => array(
+                    __('Capacité à rendre des sujets complexes accessibles', 'disc-test'),
+                    __('Rigueur intellectuelle associée à une aisance relationnelle', 'disc-test'),
+                    __('Influence par la qualité du raisonnement partagé', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Risque d'intellectualiser les situations relationnelles', 'disc-test'),
+                    __('Tendance à la perfection dans la communication qui ralentit la décision', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Simplifiez votre message — la clarté vaut mieux que l'exhaustivité.', 'disc-test'),
+                    __('Acceptez que tout le monde ne partage pas votre niveau d'exigence.', 'disc-test'),
+                ),
+            ),
+
+            'SC' => array(
+                'synthesis'  => __("Votre profil combine la fiabilité et la rigueur. Vous créez des systèmes durables et vous engagez sur la qualité à long terme. Votre régularité et votre précision sont des atouts précieux dans les environnements qui exigent de la consistance.", 'disc-test'),
+                'strengths'  => array(
+                    __('Processus solides, fiables et bien documentés', 'disc-test'),
+                    __('Engagement dans la durée avec des standards élevés', 'disc-test'),
+                    __('Approche méthodique qui réduit les risques d'erreur', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Résistance au changement et inconfort face à l'imprévu', 'disc-test'),
+                    __('Tendance à la paralysie par l'analyse dans les situations nouvelles', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Acceptez l'expérimentation comme mode d'apprentissage.', 'disc-test'),
+                    __('Développez votre confiance dans les situations non balisées.', 'disc-test'),
+                ),
+            ),
+
+            'CS' => array(
+                'synthesis'  => __("Votre profil associe une grande rigueur analytique à un fort sens de la stabilité. Vous travaillez avec méthode, dans un cadre clair, et vous vous engagez sur la durée. Votre sérieux et votre fiabilité inspirent confiance.", 'disc-test'),
+                'strengths'  => array(
+                    __('Rigueur analytique associée à une grande régularité', 'disc-test'),
+                    __('Fiabilité dans les engagements et les livrables', 'disc-test'),
+                    __('Capacité à maintenir des standards élevés sur le long terme', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Risque de rester dans sa zone de confort au détriment de l'adaptation', 'disc-test'),
+                    __('Tendance à sous-communiquer ses besoins ou ses difficultés', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Exposez-vous régulièrement à des contextes nouveaux pour développer votre adaptabilité.', 'disc-test'),
+                    __('Partagez vos analyses et vos doutes — les autres en ont besoin.', 'disc-test'),
+                ),
+            ),
+
+            'DIS' => array(
+                'synthesis'  => __("Votre profil nuancé associe trois dimensions fortes : action, influence et stabilité. Vous êtes à la fois moteur, fédérateur et ancre pour votre entourage. Cette polyvalence vous rend très adaptable mais peut parfois manquer de tranchant.", 'disc-test'),
+                'strengths'  => array(
+                    __('Grande adaptabilité selon les situations', 'disc-test'),
+                    __('Capacité à initier, mobiliser et tenir dans la durée', 'disc-test'),
+                    __('Leadership situationnel efficace', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Risque de dilution du focus entre plusieurs styles', 'disc-test'),
+                    __('Difficulté à prendre des décisions tranchées ou impopulaires', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Identifiez votre registre le plus naturel et assumez-le davantage.', 'disc-test'),
+                    __('La polyvalence est une force — à condition de ne pas chercher à plaire à tout le monde.', 'disc-test'),
+                ),
+            ),
+
+            'DIC' => array(
+                'synthesis'  => __("Votre profil nuancé associe détermination, influence et rigueur. Vous avancez vite, vous embarquez les autres et vous vous assurez de la qualité du résultat. Cette combinaison est rare et puissante.", 'disc-test'),
+                'strengths'  => array(
+                    __('Capacité à décider, convaincre et délivrer avec qualité', 'disc-test'),
+                    __('Leadership crédible par l'action et la rigueur', 'disc-test'),
+                    __('Autonomie forte et sens des responsabilités', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Risque d'exigence excessive sur soi et sur les autres', 'disc-test'),
+                    __('Tendance à manquer de patience envers les profils plus lents', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Faites de la place aux profils S dans votre équipe pour équilibrer votre rythme.', 'disc-test'),
+                    __('Acceptez que la perfection immédiate n'est pas toujours possible.', 'disc-test'),
+                ),
+            ),
+
+            'DSC' => array(
+                'synthesis'  => __("Votre profil nuancé combine détermination, constance et rigueur. Vous avancez avec ténacité vers vos objectifs, en maintenant des standards élevés sur la durée. Ce profil est souvent associé à une grande crédibilité professionnelle.", 'disc-test'),
+                'strengths'  => array(
+                    __('Persévérance dans l'atteinte d'objectifs ambitieux', 'disc-test'),
+                    __('Rigueur et fiabilité sur la durée', 'disc-test'),
+                    __('Capacité à tenir un cap malgré les obstacles', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Manque de souplesse relationnelle qui peut isoler', 'disc-test'),
+                    __('Tendance à prioriser le résultat sur le bien-être de l'équipe', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Investissez dans la qualité des relations — elles sont un levier de performance.', 'disc-test'),
+                    __('Accueillez les signaux d'alarme avant qu'ils deviennent des crises.', 'disc-test'),
+                ),
+            ),
+
+            'ISC' => array(
+                'synthesis'  => __("Votre profil nuancé associe influence, stabilité et rigueur. Vous combinez le soin des relations avec la fiabilité et l'exigence de qualité. Vous êtes souvent perçu comme quelqu'un de sérieux, accessible et digne de confiance.", 'disc-test'),
+                'strengths'  => array(
+                    __('Relations durables fondées sur la confiance et la qualité', 'disc-test'),
+                    __('Capacité à animer et à structurer des environnements collectifs', 'disc-test'),
+                    __('Régularité et sérieux dans le travail accompli', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Tendance à éviter les confrontations même quand elles sont nécessaires', 'disc-test'),
+                    __('Risque de se sentir épuisé à vouloir tout faire bien pour tout le monde', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Apprenez à prioriser — vous ne pouvez pas tout tenir à 100%.', 'disc-test'),
+                    __('Osez les désaccords constructifs — ils enrichissent les relations.', 'disc-test'),
+                ),
+            ),
+
+            'DISC' => array(
+                'synthesis'  => __("Votre profil apparaît équilibré entre les quatre dimensions DISC. Vous adaptez facilement votre style selon les contextes et les personnes. Cette flexibilité est une vraie force, à condition de rester ancré dans vos propres valeurs et besoins.", 'disc-test'),
+                'strengths'  => array(
+                    __('Adaptabilité exceptionnelle face aux situations variées', 'disc-test'),
+                    __('Compréhension naturelle des différents styles de fonctionnement', 'disc-test'),
+                    __('Capacité à jouer des rôles différents selon les besoins du groupe', 'disc-test'),
+                ),
+                'vigilance'  => array(
+                    __('Risque de sur-adaptation et de perte d'identité', 'disc-test'),
+                    __('Tendance à ne pas affirmer de cap clair, par souci d'équilibre', 'disc-test'),
+                ),
+                'advice'     => array(
+                    __('Définissez votre propre style de référence pour ne pas toujours vous adapter aux autres.', 'disc-test'),
+                    __('Restez fidèle à vos valeurs profondes — c'est votre ancrage.', 'disc-test'),
+                ),
+            ),
+
+        );
+
+        // Fallback : si le profil n'est pas dans la liste (ex: combinaisons rares),
+        // on construit une description générique à partir de la première dimension
+        $desc = $descriptions[$profile_type] ?? null;
+        if (!$desc) {
+            $first_dim = $profile_type[0];
+            $base      = $descriptions[$first_dim] ?? $descriptions['D'];
+            $desc = array(
+                'synthesis' => $base['synthesis'],
+                'strengths' => $base['strengths'],
+                'vigilance' => $base['vigilance'],
+                'advice'    => $base['advice'],
+            );
+        }
+
+        return array(
+            'title'          => $profile_title,
+            'synthesis'      => $desc['synthesis'],
+            'strengths'      => $desc['strengths'],
+            'vigilance'      => $desc['vigilance'],
+            'advice'         => $desc['advice'],
+            'contrast'       => $contrast,
+            'contrast_level' => $contrast_info,
+            // Compatibilité avec l'ancien format pour l'email
+            'description'    => $desc['synthesis'],
+            'development'    => $desc['advice'][0] ?? '',
+            'subtitle'       => $contrast_info['label'],
+        );
     }
 }

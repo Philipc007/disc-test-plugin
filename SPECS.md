@@ -4,8 +4,8 @@
 
 Plugin WordPress pour administrer un test DISC psychométrique comme lead magnet B2B pour dirigeants et managers d'entreprises.
 
-**Version** : 1.1.0
-**Status** : MVP complet — en déploiement
+**Version** : 1.3.0
+**Status** : En ligne (o2switch) — passe QA finale effectuée
 **Stack** : WordPress 5.8+, PHP 7.4+, MySQL 5.7+, JavaScript ES6, Chart.js 3.9.1, QuickChart.io
 
 ## Architecture
@@ -77,7 +77,7 @@ Plugin WordPress pour administrer un test DISC psychométrique comme lead magnet
 
 **Méthodes principales** :
 - `create_tables()` - Crée les 4 tables
-- `insert_default_questions()` - Insère les 28 questions DISC
+- `insert_default_questions()` - Insère les 14 blocs ipsatifs v1.3
 - `get_questions()` - Récupère toutes les questions
 - `save_result($data)` - Enregistre un résultat
 - `save_responses($token, $responses)` - Enregistre les réponses détaillées
@@ -115,18 +115,29 @@ define('DISC_ENCRYPTION_KEY', 'votre_cle_32_caracteres');
 
 **Méthodes principales** :
 - `render_test($atts)` - Fonction centrale appelée par shortcode ET bloc
-- `get_profile_description($type, $scores)` - Descriptions des 12 profils
+- `get_profile_description($type, $scores)` - Descriptions des 23 profils + DISC + fallback générique
 - `determine_profile_type($scores)` - Calcul du profil dominant
+- `get_profile_title($type)` - Titre contextualisé (dominant/nuancé/équilibré)
+- `get_contrast_level($contrast)` - Niveau de contraste (4 niveaux)
 
 **Profils supportés** :
 - Simples : D, I, S, C
-- Doubles : DI, DS, DC, IS, IC, SC
-- Triples : DIS
+- Doubles : DI, ID, DS, SD, DC, CD, IS, SI, IC, CI, SC, CS
+- Triples : DIS, DIC, DSC, ISC
 - Équilibré : DISC
+- Fallback : première dimension + description générique
+
+**Structure description (6 blocs)** :
+- `title` — Bloc A : titre contextualisé
+- `synthesis` — Bloc B : synthèse du profil
+- `strengths` — Bloc D : forces probables (array)
+- `vigilance` — Bloc E : points de vigilance (array)
+- `advice` — Bloc F : conseils pratiques (array)
+- `contrast_level` — niveau de contraste (label + key)
 
 **HTML généré** :
 - Écran démarrage avec bénéfices
-- 28 questions avec navigation progressive
+- 14 questions avec navigation progressive
 - Barre de progression
 - Formulaire contact RGPD
 - Écran résultats avec graphique Chart.js
@@ -162,21 +173,23 @@ do_action('disc_test_completed', $contact_data, $scores, $profile_type);
 
 **Template email** :
 - Header avec gradient
-- Badge profil
-- Scores en tableau
-- Description profil
-- Forces principales
-- Conseils développement
-- Footer avec contact
+- Badge profil (type + titre + niveau de contraste)
+- Scores en tableau (/100 — scores indépendants)
+- Graphique via QuickChart.io (horizontalBar, Chart.js 2.x, max=100)
+- Synthèse du profil (Bloc B)
+- Forces probables (Bloc D)
+- Points de vigilance (Bloc E)
+- Axes de développement / conseils (Bloc F)
+- Footer RGPD configurable
 
 #### DISC_Admin
 **Responsabilité** : Interface administration WordPress
 
 **Pages créées** :
-- **Résultats** : Liste tous les participants avec filtres
+- **Résultats** : Liste tous les participants avec filtres et renvoi email
 - **Statistiques** : Dashboard avec métriques
-- **Questions** : Visualisation des 28 questions
-- **Paramètres** : Configuration plugin
+- **Questions** : Visualisation et édition des 14 blocs ipsatifs
+- **Paramètres** : Configuration plugin + section Maintenance (reset questions, reset data)
 
 **Métriques affichées** :
 - Total tests
@@ -290,100 +303,99 @@ Styles preview bloc Gutenberg
 
 ### Calcul des Scores DISC
 
-> **v1.2 — Méthode ipsative alignée D4D** (remplace la normalisation min-max v1.0)
+> **v1.3 — Scores indépendants 0–100** (remplace les scores relatifs v1.2)
 
-**Entrées** : 28 réponses avec "most_like" et "least_like"
+**Entrées** : 14 blocs ipsatifs avec "most_like" et "least_like"
 
 **Étape 1 — Scoring brut ipsatif** :
 ```
-Pour chaque réponse :
-  scores[most_like]  += 2      // "Le plus moi"
-  scores[least_like] -= 1      // "Le moins moi"
-  scores[neutre_1]   += 0.5    // dimension non choisie
-  scores[neutre_2]   += 0.5    // dimension non choisie
+Pour chaque bloc (14 blocs) :
+  raw[most_like]  += 1      // "Le plus moi"
+  raw[least_like] -= 1      // "Le moins moi"
+  // Les 2 autres dimensions restent à 0
 
-Propriété : somme par question = +2 (ipsatif)
-Somme totale sur 28 questions : 28 × 2 = 56 points
+→ Plage brute par dimension : [-14 … +14]
+→ Les 4 dimensions sont indépendantes (ne somment pas à une constante)
 ```
 
-**Étape 2 — Conversion en scores relatifs (%)** :
-```
-total = somme des 4 scores bruts  (vaut toujours 56)
-
-Pour chaque dimension :
-  score_relatif = round((score_brut / total) * 100)
-
-→ Les 4 scores relatifs totalisent 100%
+**Étape 2 — Normalisation indépendante sur 0–100** :
+```php
+// Pour chaque dimension :
+$scores[$dim] = round((($raw + $question_count) / (2 * $question_count)) * 100);
+// $question_count = 14
+// raw = -14 → 0    raw = 0 → 50    raw = +14 → 100
 ```
 
-**Exemple** : scores bruts D=22, I=16, S=10, C=8 (total=56)
-- D = round(22/56 × 100) = **39%**
-- I = round(16/56 × 100) = **29%**
-- S = round(10/56 × 100) = **18%**
-- C = round(8/56 × 100)  = **14%**
+**Exemple** : raw D=+8, I=+4, S=-2, C=-10
+- D = round((8+14)/28 × 100) = **79**
+- I = round((4+14)/28 × 100) = **64**
+- S = round((-2+14)/28 × 100) = **43**
+- C = round((-10+14)/28 × 100) = **14**
 
-**Résultat** : 4 scores relatifs en %, jamais de 0 ou 100 mécanique.
+**Résultat** : 4 scores indépendants sur 100. Pas de contrainte de somme.
 
-**Vocabulaire** : "Tendances" (pas "scores") — reflète la nature relative de la mesure.
+**Constantes** (dans `disc-test.php`) :
+```php
+define('DISC_QUESTION_COUNT', 14);
+define('DISC_CRM_TAG_THRESHOLD', 60);
+define('DISC_PROFILE_SIMPLE_GAP', 10);
+define('DISC_PROFILE_NUANCED_RANGE', 8);
+define('DISC_PROFILE_BALANCED_CONTRAST', 14);
+```
 
 ### Détermination du Profil
 
-> Logique basée sur les **écarts entre scores relatifs** (remplace le seuil fixe >= 60 v1.0)
+> v1.3 — Logique basée sur les **écarts absolus entre scores** (scores 0–100 indépendants)
 
-**Seuils configurables** (dans wp-config.php) :
+**Paramètres** (constantes `disc-test.php`) :
 ```php
-define('DISC_SEUIL_DOUBLE',    5);   // Écart max top1-top2 pour profil double (en points %)
-define('DISC_SEUIL_EQUILIBRE', 4);   // Écart-type max des 4 scores pour profil équilibré
+DISC_PROFILE_BALANCED_CONTRAST = 14  // contrast ≤ 14 → profil DISC équilibré
+DISC_PROFILE_SIMPLE_GAP        = 10  // gap rank1-rank2 ≥ 10 → profil simple
+DISC_PROFILE_NUANCED_RANGE     = 8   // range top3 ≤ 8 → profil nuancé (3 dims)
 ```
 
 **Logique** :
 ```
-Trier les 4 scores par ordre décroissant → [score_1, score_2, score_3, score_4]
+Trier les 4 dimensions par score décroissant → [dims[0], dims[1], dims[2], dims[3]]
+contrast = max(scores) - min(scores)
 
-1. Calculer l'écart-type des 4 scores
-   Si écart-type < SEUIL_EQUILIBRE → profil = "DISC"
+1. Si contrast ≤ BALANCED_CONTRAST (14) → profil "DISC" (équilibré)
 
-2. ecart_1_2 = score_1 - score_2
-   ecart_2_3 = score_2 - score_3
-
-   Si ecart_1_2 > SEUIL_DOUBLE
+2. ecart_1_2 = scores[dims[0]] - scores[dims[1]]
+   Si ecart_1_2 ≥ SIMPLE_GAP (10)
      → Profil simple (ex: "D")
 
-   Sinon si ecart_2_3 <= SEUIL_DOUBLE
-     → Profil triple (ex: "DIS")
+3. range_top3 = scores[dims[0]] - scores[dims[2]]
+   Si range_top3 ≤ NUANCED_RANGE (8)
+     → Profil nuancé 3 dims (ex: "DIS")
 
-   Sinon
-     → Profil double (ex: "DI")
+4. Sinon
+     → Profil combiné 2 dims (ex: "DI")
 
-3. Retourner les lettres dans l'ordre canonique D-I-S-C
+Les lettres sont retournées dans l'ordre RÉEL des scores (pas l'ordre canonique D-I-S-C).
 ```
 
-**Exemples** :
-- D=39%, I=29%, S=18%, C=14% → écart 1-2 = 10 > 5 → Profil **"D"**
-- D=35%, I=32%, S=20%, C=13% → écart 1-2 = 3 ≤ 5, écart 2-3 = 12 > 5 → Profil **"DI"**
-- D=30%, I=28%, S=26%, C=16% → écart 1-2 = 2 ≤ 5, écart 2-3 = 2 ≤ 5 → Profil **"DIS"**
-- D=27%, I=26%, S=25%, C=22% → écart-type ≈ 1.8 < 4 → Profil **"DISC"**
+**Niveau de contraste** :
+```
+contrast ≤ 14  → équilibré
+contrast ≤ 29  → modérément contrasté
+contrast ≤ 44  → contrasté
+contrast > 44  → très contrasté
+```
 
-**Tags CRM** : dimension significative si score >= 30% (seuil adapté à l'échelle relative)
+**Tags CRM** : dimension significative si score ≥ 60 (seuil sur échelle 0–100 indépendante)
 
-> Voir aussi : `prompt-scoring-disc-v2.md` pour le détail complet de la refonte.
+> Voir aussi : `prompt-scoring-disc-v2.md` et `deep-research-report.md` pour le détail de la refonte.
 
 ### Score de Cohérence
 
 **But** : Détecter les réponses incohérentes (triche/inattention)
 
-**Paires de questions validées** :
-```
-(1, 13) - Leadership/Direction
-(2, 17) - Défis/Audace
-(3, 24) - Focus objectifs/Efficacité
-(5, 10) - Positivité
-(6, 15) - Contrôle/Résultats
-(8, 22) - Action/Initiative
-(11, 23) - Risques/Compétition
-(14, 26) - Communication ferme
-(16, 20) - Chaleur sociale
-(19, 25) - Relations/Rapport
+**Paires miroir** : basées sur `question_order` injecté depuis la BDD au moment du calcul.
+Les 7 paires de questions miroir sont définies dans `DISC_Security::calculate_consistency_score()`.
+```php
+$pairs = [[1,8],[2,9],[3,10],[4,11],[5,12],[6,13],[7,14]];
+// question_order 1–14 (v1.3 — 14 blocs)
 ```
 
 **Logique** :
@@ -508,8 +520,8 @@ Préfixe configurable dans **Test DISC → Paramètres → Préfixe des tags**.
 |-----|-----------|--------------------------|
 | `{prefix}` | Toujours | `disc` |
 | `{prefix}-{profil}` | Toujours | `disc-di` |
-| `{prefix}-d/i/s/c` | Score >= 60 | `disc-d`, `disc-i` |
-| `{prefix}-consistent` | Cohérence >= 70% | `disc-consistent` |
+| `{prefix}-d/i/s/c` | Score ≥ 60/100 | `disc-d`, `disc-i` |
+| `{prefix}-consistent` | Cohérence ≥ 70% | `disc-consistent` |
 | `{prefix}-suspect` | Cohérence < 50% | `disc-suspect` |
 
 ## Hooks WordPress
@@ -590,9 +602,9 @@ Pas de cache implémenté (compatible avec plugins cache WordPress)
 ### Tests Manuels Requis
 1. ✅ Activation plugin sans erreur
 2. ✅ Création des 4 tables
-3. ✅ Insertion 28 questions
+3. ✅ Insertion 14 blocs de questions
 4. ✅ Affichage shortcode
-5. ✅ Navigation 28 questions
+5. ✅ Navigation 14 questions
 6. ✅ Validation "le plus" ≠ "le moins"
 7. ✅ Soumission formulaire contact
 8. ✅ Calcul scores correct
@@ -639,15 +651,31 @@ Raison : Meilleure délivrabilité emails
 
 ## Fonctionnalités Implémentées (v1.2 — 2026-03-10)
 
-- ✅ **Scoring ipsatif D4D** — `+2/-1/+0.5/+0.5`, scores relatifs % (somme = 100%), plus de 0 ou 100 mécanique
-- ✅ **Détection profil par écarts** — remplace seuil fixe >= 60, seuils `DISC_SEUIL_DOUBLE` (5) et `DISC_SEUIL_EQUILIBRE` (4) configurables dans `wp-config.php`
-- ✅ **Vocabulaire "Tendance"** — email, graphique et tooltip Chart.js
-- ✅ **Pied de page email RGPD** — configurable dans les paramètres admin, activable/désactivable, variables : `{email_admin}`, `{site_name}`, `{first_name}`, `{profil}`
+- ✅ **Scoring ipsatif D4D** — `+2/-1/+0.5/+0.5`, scores relatifs % (somme = 100%)
+- ✅ **Détection profil par écarts** — seuils `DISC_SEUIL_DOUBLE` (5) et `DISC_SEUIL_EQUILIBRE` (4)
+- ✅ **Pied de page email RGPD** — configurable admin, variables : `{email_admin}`, `{site_name}`, `{first_name}`, `{profil}`
 - ✅ **Payload webhook enrichi** — `source`, `test_version`, `session_token`, `consent_given`, `locale`
-- ✅ **Continuité session** — `session_token` frontend réutilisé côté PHP
-- ✅ **Validation stricte des réponses** — count exact vs DB, IDs officiels, unicité, `most_like ≠ least_like`, `response_time >= 0`
+- ✅ **Validation stricte des réponses** — count exact vs DB, IDs officiels, unicité, `response_time >= 0`
 - ✅ **Logging des erreurs** — `email_send_failed` et `responses_save_partial` enregistrés en DB
 - ✅ **4 passes d'audit sécurité** — consentement RGPD, XSS, SSRF, chiffrement, rate limiting, nonce
+
+## Fonctionnalités Implémentées (v1.3 — 2026-03-10)
+
+- ✅ **Scoring +1/-1/0** — 14 blocs ipsatifs, scores indépendants, normalisation `round(((raw+14)/28)×100)`
+- ✅ **Scores 0–100 indépendants** — plus de contrainte de somme à 100%
+- ✅ **14 nouveaux blocs de questions** — banque psychométrique revue, reset admin disponible
+- ✅ **23 descriptions de profil** — synthesis / strengths / vigilance / advice + DISC + fallback générique
+- ✅ **Indice de contraste** — 4 niveaux (équilibré / modéré / contrasté / très contrasté), affiché email + frontend
+- ✅ **Titre contextualisé du profil** — dominant / nuancé / équilibré selon rang des scores
+- ✅ **Ordre réel des dimensions** dans le profil (ex: "IS" si I > S, pas "SI")
+- ✅ **Email enrichi** — ajout vigilance (Bloc E), conseils complets (Bloc F), badge avec niveau de contraste
+- ✅ **Scores `/100`** dans l'email — libellés "Vos scores DISC (sur 100)" au lieu de "%"
+- ✅ **Cohérence basée sur question_order** — paires miroir robustes sur 14 blocs
+- ✅ **reset_questions()** — action admin Maintenance, sécurisée par nonce, ne touche pas aux résultats
+- ✅ **DISC_CRM_TAG_THRESHOLD = 60** — constante centralisée dans `disc-test.php`
+- ✅ **Session token 64 chars hex** — compatible regex PHP `/^[0-9a-f]{64}$/`, logs corrélés
+- ✅ **Fallbacks robustes email** — `!empty()` + `(array)` guards, `?? ''` sur toutes les clés
+- ✅ **Chart.js frontend max=100** — barres horizontales `indexAxis:'y'` (Chart.js 3.x)
 
 ## Options WordPress du plugin
 
@@ -669,10 +697,20 @@ Raison : Meilleure délivrabilité emails
 
 ## Roadmap
 
-### v1.3 (prochaine)
+### v1.3 ✅ (2026-03-10)
+- Scoring +1/-1/0 normalisé, scores indépendants 0–100
+- 14 blocs de questions + reset admin
+- 23 descriptions de profil (synthesis/strengths/vigilance/advice)
+- Indice de contraste (4 niveaux)
+- Email enrichi (vigilance, conseils complets, badge contraste, `/100`)
+- Session token 64 chars hex, fallbacks email robustes
+- Passe QA finale + ZIP généré
+
+### v1.4 (prochaine)
 - Connexion Mautic via webhook
 - Page "Santé du plugin" admin (dernier email, dernier webhook, stats)
 - Log intention webhook avant envoi
+- Tests E2E Webhook sur n8n/webhook.site
 
 ### v2.0
 - Traductions EN/ES

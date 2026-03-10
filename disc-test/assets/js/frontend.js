@@ -306,32 +306,47 @@
         // Crée le graphique
         createChart(data.scores);
         
-        // Affiche la description du profil (construction DOM pour éviter XSS)
+        // Affiche la description du profil — structure 6 blocs v1.3
         const description = data.profile_description;
 
         const $content = $('<div>', { class: 'disc-profile-content' });
-        $content.append($('<h3>').text(description.title));
-        $content.append($('<h4>').text(description.subtitle));
-        $content.append($('<p>').text(description.description));
 
-        $content.append($('<h4>').text('Vos forces principales'));
-        const $strengthsList = $('<ul>');
-        description.strengths.forEach(function(strength) {
-            $strengthsList.append($('<li>').text(strength));
-        });
-        $content.append($strengthsList);
+        // BLOC A — Titre (déjà affiché via disc-profile-type, on affiche le titre complet ici)
+        $content.append($('<h3>', { class: 'disc-profile-title' }).text(description.title));
 
-        if (description.challenges && description.challenges.length) {
-            $content.append($('<h4>').text('Défis potentiels'));
-            const $challengesList = $('<ul>');
-            description.challenges.forEach(function(challenge) {
-                $challengesList.append($('<li>').text(challenge));
-            });
-            $content.append($challengesList);
+        // BLOC B — Synthèse
+        $content.append($('<p>', { class: 'disc-synthesis' }).text(description.synthesis));
+
+        // Niveau de contraste
+        if (description.contrast_level) {
+            const $contrast = $('<p>', { class: 'disc-contrast-level' })
+                .text('Profil ' + description.contrast_level.label + ' (contraste : ' + description.contrast + ' points)');
+            $content.append($contrast);
         }
 
-        $content.append($('<h4>').text('Conseil de développement'));
-        $content.append($('<p>').text(description.development));
+        // BLOC D — Forces
+        if (description.strengths && description.strengths.length) {
+            $content.append($('<h4>').text('Vos forces probables'));
+            const $list = $('<ul>');
+            description.strengths.forEach(function(s) { $list.append($('<li>').text(s)); });
+            $content.append($list);
+        }
+
+        // BLOC E — Points de vigilance
+        if (description.vigilance && description.vigilance.length) {
+            $content.append($('<h4>').text('Points de vigilance'));
+            const $list = $('<ul>');
+            description.vigilance.forEach(function(v) { $list.append($('<li>').text(v)); });
+            $content.append($list);
+        }
+
+        // BLOC F — Conseils pratiques
+        if (description.advice && description.advice.length) {
+            $content.append($('<h4>').text('Conseils pratiques'));
+            const $list = $('<ul>');
+            description.advice.forEach(function(a) { $list.append($('<li>').text(a)); });
+            $content.append($list);
+        }
 
         $('.disc-profile-description').empty().append($content);
         
@@ -394,7 +409,7 @@
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return 'Tendance : ' + context.parsed.x + '%';
+                                return 'Score : ' + context.parsed.x + '/100';
                             }
                         }
                     }
@@ -402,10 +417,10 @@
                 scales: {
                     x: {
                         beginAtZero: true,
-                        max: 60,
+                        max: 100,
                         ticks: {
                             callback: function(value) {
-                                return value + '%';
+                                return value;
                             }
                         },
                         grid: {
@@ -530,10 +545,21 @@
     }
     
     /**
-     * Génère un token de session unique
+     * Génère un token de session unique — 64 caractères hex
+     * Format compatible avec le regex PHP /^[0-9a-f]{64}$/ pour la corrélation des logs
      */
     function generateSessionToken() {
-        return 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        if (window.crypto && window.crypto.getRandomValues) {
+            var array = new Uint8Array(32);
+            window.crypto.getRandomValues(array);
+            return Array.from(array, function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+        }
+        // Fallback navigateur sans crypto API (très rare)
+        var token = '';
+        for (var i = 0; i < 64; i++) {
+            token += Math.floor(Math.random() * 16).toString(16);
+        }
+        return token;
     }
     
 })(jQuery);

@@ -462,6 +462,24 @@ class DISC_Admin {
             echo '<div class="notice notice-success is-dismissible"><p>' . __('Paramètres enregistrés.', 'disc-test') . '</p></div>';
         }
 
+        // Action : réinitialiser la banque de questions
+        if (isset($_POST['disc_reset_questions'])) {
+            check_admin_referer('disc_reset_questions');
+            $count = DISC_Database::reset_questions();
+            echo '<div class="notice notice-success is-dismissible"><p>' .
+                 sprintf(__('Banque de questions réinitialisée : %d blocs chargés.', 'disc-test'), $count) .
+                 '</p></div>';
+        }
+
+        // Action : supprimer tous les résultats
+        if (isset($_POST['disc_reset_test_data'])) {
+            check_admin_referer('disc_reset_test_data');
+            DISC_Database::reset_test_data();
+            echo '<div class="notice notice-warning is-dismissible"><p>' .
+                 __('Tous les résultats, réponses et logs ont été supprimés.', 'disc-test') .
+                 '</p></div>';
+        }
+
         $email_subject         = get_option('disc_email_subject', __('Votre profil DISC : {profil}', 'disc-test'));
         $crm_webhook           = get_option('disc_crm_webhook', '');
         $tag_prefix            = get_option('disc_tag_prefix', 'disc');
@@ -615,6 +633,38 @@ class DISC_Admin {
 define('DISC_ENCRYPTION_KEY', '<?php echo bin2hex(random_bytes(16)); ?>');
             </pre>
             <p><?php _e('Cette clé servira à chiffrer les emails dans la base de données.', 'disc-test'); ?></p>
+
+            <hr>
+            <h2><?php _e('Maintenance', 'disc-test'); ?></h2>
+            <p><?php _e('Ces actions sont irréversibles. Elles ne s\'exécutent que sur confirmation explicite.', 'disc-test'); ?></p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0;">
+
+                <div style="background:#fff8e1;border-left:4px solid #f59e0b;padding:16px;border-radius:0 6px 6px 0;">
+                    <h3 style="margin-top:0;"><?php _e('Réinitialiser la banque de questions', 'disc-test'); ?></h3>
+                    <p><?php _e('Vide et recharge les 14 blocs de questions de la version courante. À utiliser après une mise à jour de la banque d\'items.', 'disc-test'); ?></p>
+                    <p><strong><?php _e('N\'affecte pas les résultats existants.', 'disc-test'); ?></strong></p>
+                    <form method="post" onsubmit="return confirm('<?php echo esc_js(__('Confirmer la réinitialisation de la banque de questions ?', 'disc-test')); ?>');">
+                        <?php wp_nonce_field('disc_reset_questions'); ?>
+                        <button type="submit" name="disc_reset_questions" class="button button-secondary">
+                            <?php _e('Réinitialiser les questions', 'disc-test'); ?>
+                        </button>
+                    </form>
+                </div>
+
+                <div style="background:#fff0f0;border-left:4px solid #dc2626;padding:16px;border-radius:0 6px 6px 0;">
+                    <h3 style="margin-top:0;"><?php _e('Supprimer tous les résultats', 'disc-test'); ?></h3>
+                    <p><?php _e('Supprime définitivement tous les résultats de test, toutes les réponses détaillées et tous les logs d\'audit.', 'disc-test'); ?></p>
+                    <p><strong><?php _e('⚠️ Opération irréversible — ne pas utiliser en production.', 'disc-test'); ?></strong></p>
+                    <form method="post" onsubmit="return confirm('<?php echo esc_js(__('ATTENTION : Cette action est irréversible. Supprimer tous les résultats ?', 'disc-test')); ?>');">
+                        <?php wp_nonce_field('disc_reset_test_data'); ?>
+                        <button type="submit" name="disc_reset_test_data" class="button" style="background:#dc2626;color:white;border-color:#b91c1c;">
+                            <?php _e('Supprimer tous les résultats', 'disc-test'); ?>
+                        </button>
+                    </form>
+                </div>
+
+            </div>
         </div>
         <?php
     }
