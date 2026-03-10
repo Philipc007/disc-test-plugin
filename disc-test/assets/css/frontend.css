@@ -584,6 +584,58 @@
 }
 
 /* =============================================================================
+   Bloc marketing configurable (CTA après résultats)
+   ============================================================================= */
+
+.disc-cta-block {
+    background: #f4f0ff;
+    border-left: 4px solid #667eea;
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+}
+
+.disc-cta-block .disc-cta-title {
+    color: #667eea;
+    font-size: 18px;
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+.disc-cta-block .disc-cta-body p {
+    color: #374151;
+    line-height: 1.6;
+    margin: 6px 0;
+}
+
+.disc-cta-block .disc-cta-body h4 {
+    color: #4b3b8c;
+    font-size: 15px;
+    font-weight: 600;
+    margin: 12px 0 4px;
+}
+
+.disc-cta-block .disc-cta-body ul {
+    margin: 6px 0 6px 20px;
+    padding: 0;
+}
+
+.disc-cta-block .disc-cta-body li {
+    color: #374151;
+    line-height: 1.6;
+    margin-bottom: 4px;
+}
+
+.disc-cta-button-wrap {
+    text-align: center;
+    margin: 18px 0 0;
+}
+
+.disc-cta-btn {
+    display: inline-block;
+}
+
+/* =============================================================================
    Loading Overlay
    ============================================================================= */
 

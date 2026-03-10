@@ -5,8 +5,8 @@
 [![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-blue.svg)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)](https://www.php.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v2-green.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Version](https://img.shields.io/badge/Version-1.3-blue.svg)]()
-[![Status](https://img.shields.io/badge/Status-ZIP%20prêt%20(déploiement%20v1.3)-green.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.4-blue.svg)]()
+[![Status](https://img.shields.io/badge/Status-v1.4%20UX%20%2B%20bloc%20marketing-green.svg)]()
 
 ## 📋 Table des Matières
 
@@ -40,6 +40,11 @@ Ce plugin WordPress permet d'administrer un test DISC complet (14 blocs ipsatifs
 - ✅ **Responsive design** : Mobile-first, testé sur tous devices
 - ✅ **Graphiques interactifs** : Chart.js barres horizontales, max=100
 - ✅ **23 profils DISC** : Synthèse / Forces / Vigilance / Conseils + indice de contraste
+- ✅ **Titres enrichis** : Noms complets des dimensions (D → Dominance, I → Influence…)
+- ✅ **Contextualisation** : Phrase dynamique expliquant la combinaison de dimensions
+- ✅ **Explication du contraste** : Phrase lisible remplaçant le brut "contraste : X pts"
+- ✅ **Bloc marketing configurable** : CTA personnalisable après résultats (frontend + email)
+- ✅ **Mini-markdown** : Corps du CTA avec `# titre`, `**gras**`, `- liste`, `[lien](url)`
 - ✅ **Partage social** : Bouton LinkedIn intégré
 - ✅ **RGPD compliant** : Consentement explicite, politique confidentialité
 
@@ -294,7 +299,15 @@ Consultez [TASKS.md](TASKS.md) pour voir les tâches prioritaires.
 - [x] Session token 64 chars hex (logs corrélés)
 - [x] Passe QA finale : fallbacks robustes, scores échappés, commentaires mis à jour
 
-### Version 1.4 (prochaine)
+### Version 1.4 ✅ (2026-03-10)
+- [x] Titres de profil avec noms complets des dimensions (D → Dominance, I → Influence…)
+- [x] Phrase de contextualisation dynamique par combinaison de dimensions
+- [x] Explication du niveau de contraste (remplace le brut "contraste : X pts")
+- [x] Bloc marketing configurable : titre + corps mini-markdown + bouton CTA
+- [x] mini_markdown() : `# titre`, `**gras**`, `- liste`, `[texte](url)`, `<p>`
+- [x] Bloc CTA rendu dans résultats frontend ET dans l'email si activé
+
+### Version 1.5 (prochaine)
 - [ ] Connexion Mautic via webhook
 - [ ] Page "Santé du plugin" admin
 - [ ] Log intention webhook

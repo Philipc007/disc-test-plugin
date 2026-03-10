@@ -317,11 +317,17 @@
         // BLOC B — Synthèse
         $content.append($('<p>', { class: 'disc-synthesis' }).text(description.synthesis));
 
-        // Niveau de contraste
+        // Phrase de contextualisation (1.2)
+        if (description.contextualization) {
+            $content.append($('<p>', { class: 'disc-contextualization' }).text(description.contextualization));
+        }
+
+        // Niveau de contraste (1.3) — phrase explicative
         if (description.contrast_level) {
-            const $contrast = $('<p>', { class: 'disc-contrast-level' })
-                .text('Profil ' + description.contrast_level.label + ' (contraste : ' + description.contrast + ' points)');
-            $content.append($contrast);
+            var contrastText = description.contrast_level.explanation
+                ? 'Profil ' + description.contrast_level.label + ' — ' + description.contrast_level.explanation
+                : 'Profil ' + description.contrast_level.label + ' (contraste : ' + description.contrast + ' pts)';
+            $content.append($('<p>', { class: 'disc-contrast-level' }).text(contrastText));
         }
 
         // BLOC D — Forces

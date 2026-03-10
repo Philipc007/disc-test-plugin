@@ -227,7 +227,9 @@ class DISC_Renderer {
                     <div class="disc-profile-description">
                         <!-- Sera rempli dynamiquement par JavaScript -->
                     </div>
-                    
+
+                    <?php echo self::render_cta_block('frontend'); ?>
+
                     <div class="disc-consistency-notice" style="display:none;">
                         <p class="disc-warning">
                             <?php _e('⚠️ Attention : Nous avons détecté quelques incohérences dans vos réponses. Pour des résultats plus fiables, nous vous recommandons de refaire le test en prenant le temps de réfléchir à chaque question.', 'disc-test'); ?>
@@ -304,18 +306,197 @@ class DISC_Renderer {
     }
 
     /**
+     * Applique le formatage inline (gras, liens) sur une ligne de texte brut
+     * Doit être appelé AVANT esc_html pour les parties non formatées
+     */
+    private static function inline_format($text) {
+        $placeholders = array();
+
+        // Extraire les liens [texte](url)
+        $text = preg_replace_callback('/\[([^\]]+)\]\(([^\)]+)\)/', function($m) use (&$placeholders) {
+            $key = '%%L' . count($placeholders) . '%%';
+            $placeholders[$key] = '<a href="' . esc_url($m[2]) . '" target="_blank" rel="noopener noreferrer">' . esc_html($m[1]) . '</a>';
+            return $key;
+        }, $text);
+
+        // Extraire les **gras**
+        $text = preg_replace_callback('/\*\*(.+?)\*\*/', function($m) use (&$placeholders) {
+            $key = '%%B' . count($placeholders) . '%%';
+            $placeholders[$key] = '<strong>' . esc_html($m[1]) . '</strong>';
+            return $key;
+        }, $text);
+
+        // Échapper le reste
+        $text = esc_html($text);
+
+        // Réinsérer les éléments formatés (placeholders sans chars HTML spéciaux)
+        foreach ($placeholders as $key => $html) {
+            $text = str_replace($key, $html, $text);
+        }
+
+        return $text;
+    }
+
+    /**
+     * Convertit du texte mini-markdown en HTML sécurisé
+     * Syntaxe supportée : # Titre → <h4>, **gras**, - liste, [texte](url), ligne vide = <p>
+     *
+     * @param string $text    Texte source
+     * @param string $context 'frontend' (classes CSS) ou 'email' (styles inline)
+     * @return string
+     */
+    public static function mini_markdown($text, $context = 'frontend') {
+        if (empty($text)) {
+            return '';
+        }
+
+        $lines       = explode("\n", str_replace("\r\n", "\n", $text));
+        $html        = '';
+        $list_items  = array();
+        $para_buffer = '';
+
+        $flush_para = function() use (&$html, &$para_buffer, $context) {
+            if ($para_buffer !== '') {
+                $style = ($context === 'email') ? ' style="margin:8px 0;color:#333;"' : '';
+                $html .= '<p' . $style . '>' . $para_buffer . '</p>';
+                $para_buffer = '';
+            }
+        };
+        $flush_list = function() use (&$html, &$list_items, $context) {
+            if (!empty($list_items)) {
+                $style = ($context === 'email') ? ' style="margin:8px 0 8px 20px;padding:0;"' : '';
+                $html .= '<ul' . $style . '>' . implode('', $list_items) . '</ul>';
+                $list_items = array();
+            }
+        };
+
+        foreach ($lines as $line) {
+            $line = rtrim($line);
+
+            // Ligne vide → ferme le bloc courant
+            if ($line === '') {
+                $flush_list();
+                $flush_para();
+                continue;
+            }
+
+            // Titre : # ...
+            if (preg_match('/^# (.+)$/', $line, $m)) {
+                $flush_list();
+                $flush_para();
+                $style = ($context === 'email') ? ' style="font-size:16px;font-weight:600;color:#444;margin:12px 0 4px;"' : '';
+                $html .= '<h4' . $style . '>' . esc_html($m[1]) . '</h4>';
+                continue;
+            }
+
+            // Élément de liste : - ...
+            if (preg_match('/^- (.+)$/', $line, $m)) {
+                $flush_para();
+                $item_style = ($context === 'email') ? ' style="margin:3px 0;"' : '';
+                $list_items[] = '<li' . $item_style . '>' . self::inline_format($m[1]) . '</li>';
+                continue;
+            }
+
+            // Texte courant → accumuler dans le paragraphe
+            $flush_list();
+            $para_buffer .= ($para_buffer !== '' ? ' ' : '') . self::inline_format($line);
+        }
+
+        // Vider les tampons restants
+        $flush_list();
+        $flush_para();
+
+        return $html;
+    }
+
+    /**
+     * Génère le HTML du bloc marketing configurable
+     * Affiché après les résultats DISC, avant les prochaines étapes
+     *
+     * @param string $context 'frontend' (classes CSS) ou 'email' (styles inline)
+     * @return string HTML ou chaîne vide si bloc désactivé ou vide
+     */
+    public static function render_cta_block($context = 'frontend') {
+        if (!get_option('disc_cta_enabled', 0)) {
+            return '';
+        }
+
+        $title    = get_option('disc_cta_title', '');
+        $body     = get_option('disc_cta_body', '');
+        $btn_text = get_option('disc_cta_button_text', '');
+        $btn_url  = get_option('disc_cta_button_url', '');
+
+        if (empty($title) && empty($body)) {
+            return '';
+        }
+
+        if ($context === 'email') {
+            $html  = '<div style="background:#f4f0ff;border-left:4px solid #667eea;padding:20px 24px;margin:24px 0;border-radius:0 8px 8px 0;">';
+            if ($title) {
+                $html .= '<h3 style="margin:0 0 10px;font-size:18px;color:#667eea;">' . esc_html($title) . '</h3>';
+            }
+            if ($body) {
+                $html .= self::mini_markdown($body, 'email');
+            }
+            if ($btn_text && $btn_url) {
+                $html .= '<p style="margin:16px 0 0;text-align:center;"><a href="' . esc_url($btn_url) . '" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#667eea;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">' . esc_html($btn_text) . '</a></p>';
+            }
+            $html .= '</div>';
+        } else {
+            $html  = '<div class="disc-cta-block">';
+            if ($title) {
+                $html .= '<h3 class="disc-cta-title">' . esc_html($title) . '</h3>';
+            }
+            if ($body) {
+                $html .= '<div class="disc-cta-body">' . self::mini_markdown($body, 'frontend') . '</div>';
+            }
+            if ($btn_text && $btn_url) {
+                $html .= '<p class="disc-cta-button-wrap"><a href="' . esc_url($btn_url) . '" target="_blank" rel="noopener noreferrer" class="disc-btn disc-btn-primary disc-cta-btn">' . esc_html($btn_text) . '</a></p>';
+            }
+            $html .= '</div>';
+        }
+
+        return $html;
+    }
+
+    /**
+     * Retourne le nom complet d'une dimension DISC
+     */
+    private static function get_dimension_name($letter) {
+        $names = array('D' => 'Dominance', 'I' => 'Influence', 'S' => 'Stabilité', 'C' => 'Conformité');
+        return $names[$letter] ?? $letter;
+    }
+
+    /**
      * Retourne le niveau de contraste du profil
      * Basé sur contrast = max(scores) - min(scores)
      */
     public static function get_contrast_level($contrast) {
-        if ($contrast <= 14) return array('label' => 'équilibré',              'key' => 'balanced');
-        if ($contrast <= 29) return array('label' => 'modérément contrasté',   'key' => 'moderate');
-        if ($contrast <= 44) return array('label' => 'contrasté',              'key' => 'high');
-        return                      array('label' => 'très contrasté',         'key' => 'very_high');
+        if ($contrast <= 14) return array(
+            'label'       => 'équilibré',
+            'key'         => 'balanced',
+            'explanation' => 'Vos 4 dimensions sont proches : vous adaptez naturellement votre style selon le contexte.',
+        );
+        if ($contrast <= 29) return array(
+            'label'       => 'modérément contrasté',
+            'key'         => 'moderate',
+            'explanation' => 'Une ou deux dimensions se détachent légèrement : votre profil conjugue adaptabilité et axes de prédilection.',
+        );
+        if ($contrast <= 44) return array(
+            'label'       => 'contrasté',
+            'key'         => 'high',
+            'explanation' => 'Vos dimensions dominantes se distinguent clairement : votre style comportemental est bien affirmé.',
+        );
+        return array(
+            'label'       => 'très contrasté',
+            'key'         => 'very_high',
+            'explanation' => 'Une dimension prédomine très fortement : votre comportement naturel est très marqué dans cette direction.',
+        );
     }
 
     /**
      * Génère le titre du profil (BLOC A de la restitution)
+     * Chaque lettre est accompagnée de son nom complet (Dominance, Influence, Stabilité, Conformité)
      */
     public static function get_profile_title($profile_type) {
         $len = strlen($profile_type);
@@ -323,15 +504,24 @@ class DISC_Renderer {
             return __('Votre profil DISC apparaît équilibré', 'disc-test');
         }
         if ($len === 1) {
-            return sprintf(__('Votre profil DISC dominant : %s', 'disc-test'), $profile_type);
+            return sprintf(
+                __('Votre profil DISC dominant : %s (%s)', 'disc-test'),
+                $profile_type, self::get_dimension_name($profile_type)
+            );
         }
         if ($len === 2) {
             return sprintf(
-                __('Votre profil DISC dominant : %s, avec une nuance secondaire %s', 'disc-test'),
-                $profile_type[0], $profile_type[1]
+                __('Votre profil DISC : %s (%s) — %s (%s)', 'disc-test'),
+                $profile_type[0], self::get_dimension_name($profile_type[0]),
+                $profile_type[1], self::get_dimension_name($profile_type[1])
             );
         }
-        return sprintf(__('Votre profil DISC nuancé : %s', 'disc-test'), $profile_type);
+        // 3 ou 4 lettres
+        $parts = array();
+        for ($i = 0; $i < $len; $i++) {
+            $parts[] = $profile_type[$i] . ' (' . self::get_dimension_name($profile_type[$i]) . ')';
+        }
+        return sprintf(__('Votre profil DISC nuancé : %s', 'disc-test'), implode(' — ', $parts));
     }
 
     /**
@@ -360,7 +550,7 @@ class DISC_Renderer {
                 ),
                 'vigilance'  => array(
                     __("Tendance à aller vite, parfois au détriment de l'écoute", 'disc-test'),
-                    __('Risque de sous-estimer les besoins relationnels de l'équipe', 'disc-test'),
+                    __('Risque de sous-estimer les besoins relationnels de l\'équipe', 'disc-test'),
                     __('Impatience face aux processus lents ou aux hésitations', 'disc-test'),
                 ),
                 'advice'     => array(
@@ -374,12 +564,12 @@ class DISC_Renderer {
                 'synthesis'  => __("Votre profil met en avant une forte capacité à créer du lien, à entraîner les autres et à faire circuler l'énergie dans un groupe. Vous êtes à l'aise pour convaincre, inspirer et donner confiance. Votre enthousiasme est souvent contagieux.", 'disc-test'),
                 'strengths'  => array(
                     __('Aisance relationnelle et capacité à fédérer', 'disc-test'),
-                    __('Communication naturelle et impact à l'oral', 'disc-test'),
-                    __('Capacité à motiver et à insuffler de l'optimisme', 'disc-test'),
+                    __('Communication naturelle et impact à l\'oral', 'disc-test'),
+                    __('Capacité à motiver et à insuffler de l\'optimisme', 'disc-test'),
                     __('Créativité dans les échanges et ouverture aux idées nouvelles', 'disc-test'),
                 ),
                 'vigilance'  => array(
-                    __('Tendance à sur-s'engager ou à disperser son énergie', 'disc-test'),
+                    __('Tendance à sur-s\'engager ou à disperser son énergie', 'disc-test'),
                     __('Risque de manquer de suivi sur les détails et les livrables', 'disc-test'),
                     __('Difficulté à dire non ou à gérer des conversations difficiles', 'disc-test'),
                 ),
@@ -400,11 +590,11 @@ class DISC_Renderer {
                 ),
                 'vigilance'  => array(
                     __('Résistance au changement et inconfort face aux ruptures', 'disc-test'),
-                    __('Tendance à accepter des situations insatisfaisantes pour préserver l'harmonie', 'disc-test'),
+                    __('Tendance à accepter des situations insatisfaisantes pour préserver l\'harmonie', 'disc-test'),
                     __("Difficulté à s'affirmer ou à défendre son point de vue", 'disc-test'),
                 ),
                 'advice'     => array(
-                    __('Pratiquez l'assertivité : vos besoins et opinions ont de la valeur.', 'disc-test'),
+                    __('Pratiquez l\'assertivité : vos besoins et opinions ont de la valeur.', 'disc-test'),
                     __('Acceptez que le changement puisse être une ressource, pas seulement une contrainte.', 'disc-test'),
                     __('Fixez des limites claires pour protéger votre énergie et votre espace.', 'disc-test'),
                 ),
@@ -414,18 +604,18 @@ class DISC_Renderer {
                 'synthesis'  => __("Votre profil met en avant une grande rigueur analytique et un sens élevé de la qualité. Vous aimez comprendre en profondeur, structurer l'information et travailler avec des critères explicites. Votre exigence est un gage de fiabilité.", 'disc-test'),
                 'strengths'  => array(
                     __('Pensée analytique et capacité à repérer les incohérences', 'disc-test'),
-                    __('Standards élevés de qualité et d'exactitude', 'disc-test'),
-                    __('Rigueur dans la planification et l'organisation', 'disc-test'),
+                    __('Standards élevés de qualité et d\'exactitude', 'disc-test'),
+                    __('Rigueur dans la planification et l\'organisation', 'disc-test'),
                     __('Recul objectif face aux situations complexes', 'disc-test'),
                 ),
                 'vigilance'  => array(
                     __('Tendance à la sur-analyse pouvant freiner la prise de décision', 'disc-test'),
-                    __('Exigence parfois difficile à vivre pour l'entourage', 'disc-test'),
-                    __('Inconfort face à l'ambiguïté ou aux zones grises', 'disc-test'),
+                    __('Exigence parfois difficile à vivre pour l\'entourage', 'disc-test'),
+                    __('Inconfort face à l\'ambiguïté ou aux zones grises', 'disc-test'),
                 ),
                 'advice'     => array(
-                    __('Acceptez que l'imperfection fait partie du processus — avancer vaut parfois mieux qu'attendre.', 'disc-test'),
-                    __('Dosez votre exigence en fonction de l'enjeu réel de chaque situation.', 'disc-test'),
+                    __('Acceptez que l\'imperfection fait partie du processus — avancer vaut parfois mieux qu\'attendre.', 'disc-test'),
+                    __('Dosez votre exigence en fonction de l\'enjeu réel de chaque situation.', 'disc-test'),
                     __('Exprimez vos analyses de façon accessible pour ne pas être perçu comme trop critique.', 'disc-test'),
                 ),
             ),
@@ -433,12 +623,12 @@ class DISC_Renderer {
             'DI' => array(
                 'synthesis'  => __("Votre profil combine une forte orientation résultats et une réelle capacité à embarquer les autres. Vous avancez avec assurance tout en sachant mobiliser et convaincre. Ce duo fait de vous un leader à la fois décisif et inspirant.", 'disc-test'),
                 'strengths'  => array(
-                    __('Leadership dynamique, capable d'initier et d'entraîner', 'disc-test'),
+                    __('Leadership dynamique, capable d\'initier et d\'entraîner', 'disc-test'),
                     __('Aisance à prendre des décisions et à les faire accepter', 'disc-test'),
                     __('Énergie communicative dans les moments-clés', 'disc-test'),
                 ),
                 'vigilance'  => array(
-                    __('Risque d'impulsivité — agir avant d'avoir pleinement écouté', 'disc-test'),
+                    __('Risque d\'impulsivité — agir avant d\'avoir pleinement écouté', 'disc-test'),
                     __('Tendance à négliger les profils plus lents ou plus prudents', 'disc-test'),
                 ),
                 'advice'     => array(
@@ -451,15 +641,15 @@ class DISC_Renderer {
                 'synthesis'  => __("Votre profil combine un fort sens du contact humain et une capacité à impulser l'action. Vous inspirez les autres et savez aussi faire avancer les choses quand c'est nécessaire. Vous associez l'enthousiasme à la détermination.", 'disc-test'),
                 'strengths'  => array(
                     __('Capacité à rallier et à mettre en mouvement', 'disc-test'),
-                    __('Aisance relationnelle doublée d'un sens du résultat', 'disc-test'),
-                    __('Influence positive sur l'ambiance et la dynamique de groupe', 'disc-test'),
+                    __('Aisance relationnelle doublée d\'un sens du résultat', 'disc-test'),
+                    __('Influence positive sur l\'ambiance et la dynamique de groupe', 'disc-test'),
                 ),
                 'vigilance'  => array(
                     __('Tendance à manquer de rigueur dans le suivi opérationnel', 'disc-test'),
                     __('Risque de vouloir faire trop vite sans impliquer suffisamment', 'disc-test'),
                 ),
                 'advice'     => array(
-                    __('Structurez vos idées avant de les partager pour plus d'impact.', 'disc-test'),
+                    __('Structurez vos idées avant de les partager pour plus d\'impact.', 'disc-test'),
                     __('Entourez-vous de profils C ou S pour équilibrer votre style.', 'disc-test'),
                 ),
             ),
@@ -473,7 +663,7 @@ class DISC_Renderer {
                 ),
                 'vigilance'  => array(
                     __('Tendance à la rigidité face aux changements de cap nécessaires', 'disc-test'),
-                    __('Risque de sous-estimer l'importance du collectif et de la communication', 'disc-test'),
+                    __('Risque de sous-estimer l\'importance du collectif et de la communication', 'disc-test'),
                 ),
                 'advice'     => array(
                     __('Cultivez votre agilité : parfois changer de route est un signe de force.', 'disc-test'),
@@ -493,25 +683,25 @@ class DISC_Renderer {
                     __('Tendance à sous-communiquer sur les orientations prises', 'disc-test'),
                 ),
                 'advice'     => array(
-                    __('N'attendez pas que la situation se dégrade pour prendre position.', 'disc-test'),
-                    __('Partagez vos réflexions plus tôt pour favoriser l'alignement.', 'disc-test'),
+                    __('N\'attendez pas que la situation se dégrade pour prendre position.', 'disc-test'),
+                    __('Partagez vos réflexions plus tôt pour favoriser l\'alignement.', 'disc-test'),
                 ),
             ),
 
             'DC' => array(
                 'synthesis'  => __("Votre profil combine une forte orientation résultats avec un souci de rigueur et de qualité. Vous prenez des décisions stratégiques basées sur des faits solides. Vous êtes à la fois exigeant et efficace.", 'disc-test'),
                 'strengths'  => array(
-                    __('Prise de décision fondée sur l'analyse et les faits', 'disc-test'),
-                    __('Standards élevés d'excellence dans l'action', 'disc-test'),
+                    __('Prise de décision fondée sur l\'analyse et les faits', 'disc-test'),
+                    __('Standards élevés d\'excellence dans l\'action', 'disc-test'),
                     __('Capacité à structurer une vision et à la déployer avec rigueur', 'disc-test'),
                 ),
                 'vigilance'  => array(
                     __('Risque de paraître froid ou distant dans les relations', 'disc-test'),
-                    __('Tendance au perfectionnisme pouvant freiner l'exécution', 'disc-test'),
+                    __('Tendance au perfectionnisme pouvant freiner l\'exécution', 'disc-test'),
                 ),
                 'advice'     => array(
                     __('Développez votre intelligence émotionnelle pour mieux connecter avec votre équipe.', 'disc-test'),
-                    __('Acceptez le "suffisamment bon" quand l'enjeu ne justifie pas la perfection.', 'disc-test'),
+                    __('Acceptez le "suffisamment bon" quand l\'enjeu ne justifie pas la perfection.', 'disc-test'),
                 ),
             ),
 
@@ -523,8 +713,8 @@ class DISC_Renderer {
                     __('Autonomie et sens des responsabilités', 'disc-test'),
                 ),
                 'vigilance'  => array(
-                    __('Risque d'aller seul, sans suffisamment impliquer les autres', 'disc-test'),
-                    __('Tendance à l'exigence difficile à vivre pour l'entourage', 'disc-test'),
+                    __('Risque d\'aller seul, sans suffisamment impliquer les autres', 'disc-test'),
+                    __('Tendance à l\'exigence difficile à vivre pour l\'entourage', 'disc-test'),
                 ),
                 'advice'     => array(
                     __('Partagez votre raisonnement pour embarquer, pas seulement pour informer.', 'disc-test'),
@@ -545,7 +735,7 @@ class DISC_Renderer {
                 ),
                 'advice'     => array(
                     __('Pratiquez les conversations difficiles — elles sont souvent nécessaires pour progresser.', 'disc-test'),
-                    __('Différenciez l'harmonie superficielle de la coopération réelle.', 'disc-test'),
+                    __('Différenciez l\'harmonie superficielle de la coopération réelle.', 'disc-test'),
                 ),
             ),
 
@@ -561,7 +751,7 @@ class DISC_Renderer {
                     __('Tendance à sur-adapter son style aux attentes des autres', 'disc-test'),
                 ),
                 'advice'     => array(
-                    __('Affirmez votre point de vue même quand il dérange — c'est aussi servir les autres.', 'disc-test'),
+                    __('Affirmez votre point de vue même quand il dérange — c\'est aussi servir les autres.', 'disc-test'),
                     __('Fixez un cap clair plutôt que de vous adapter en permanence.', 'disc-test'),
                 ),
             ),
@@ -574,11 +764,11 @@ class DISC_Renderer {
                     __('Communication claire, structurée et engageante', 'disc-test'),
                 ),
                 'vigilance'  => array(
-                    __('Tendance à la sur-préparation qui peut freiner l'action', 'disc-test'),
+                    __('Tendance à la sur-préparation qui peut freiner l\'action', 'disc-test'),
                     __('Risque de perfectionnisme dans la forme au détriment du fond', 'disc-test'),
                 ),
                 'advice'     => array(
-                    __('Acceptez de livrer avant d'avoir tout peaufiné.', 'disc-test'),
+                    __('Acceptez de livrer avant d\'avoir tout peaufiné.', 'disc-test'),
                     __('Distinguez les situations où la qualité prime et celles où la rapidité suffit.', 'disc-test'),
                 ),
             ),
@@ -591,12 +781,12 @@ class DISC_Renderer {
                     __('Influence par la qualité du raisonnement partagé', 'disc-test'),
                 ),
                 'vigilance'  => array(
-                    __('Risque d'intellectualiser les situations relationnelles', 'disc-test'),
+                    __('Risque d\'intellectualiser les situations relationnelles', 'disc-test'),
                     __('Tendance à la perfection dans la communication qui ralentit la décision', 'disc-test'),
                 ),
                 'advice'     => array(
-                    __('Simplifiez votre message — la clarté vaut mieux que l'exhaustivité.', 'disc-test'),
-                    __('Acceptez que tout le monde ne partage pas votre niveau d'exigence.', 'disc-test'),
+                    __('Simplifiez votre message — la clarté vaut mieux que l\'exhaustivité.', 'disc-test'),
+                    __('Acceptez que tout le monde ne partage pas votre niveau d\'exigence.', 'disc-test'),
                 ),
             ),
 
@@ -605,14 +795,14 @@ class DISC_Renderer {
                 'strengths'  => array(
                     __('Processus solides, fiables et bien documentés', 'disc-test'),
                     __('Engagement dans la durée avec des standards élevés', 'disc-test'),
-                    __('Approche méthodique qui réduit les risques d'erreur', 'disc-test'),
+                    __('Approche méthodique qui réduit les risques d\'erreur', 'disc-test'),
                 ),
                 'vigilance'  => array(
-                    __('Résistance au changement et inconfort face à l'imprévu', 'disc-test'),
-                    __('Tendance à la paralysie par l'analyse dans les situations nouvelles', 'disc-test'),
+                    __('Résistance au changement et inconfort face à l\'imprévu', 'disc-test'),
+                    __('Tendance à la paralysie par l\'analyse dans les situations nouvelles', 'disc-test'),
                 ),
                 'advice'     => array(
-                    __('Acceptez l'expérimentation comme mode d'apprentissage.', 'disc-test'),
+                    __('Acceptez l\'expérimentation comme mode d\'apprentissage.', 'disc-test'),
                     __('Développez votre confiance dans les situations non balisées.', 'disc-test'),
                 ),
             ),
@@ -625,7 +815,7 @@ class DISC_Renderer {
                     __('Capacité à maintenir des standards élevés sur le long terme', 'disc-test'),
                 ),
                 'vigilance'  => array(
-                    __('Risque de rester dans sa zone de confort au détriment de l'adaptation', 'disc-test'),
+                    __('Risque de rester dans sa zone de confort au détriment de l\'adaptation', 'disc-test'),
                     __('Tendance à sous-communiquer ses besoins ou ses difficultés', 'disc-test'),
                 ),
                 'advice'     => array(
@@ -655,33 +845,33 @@ class DISC_Renderer {
                 'synthesis'  => __("Votre profil nuancé associe détermination, influence et rigueur. Vous avancez vite, vous embarquez les autres et vous vous assurez de la qualité du résultat. Cette combinaison est rare et puissante.", 'disc-test'),
                 'strengths'  => array(
                     __('Capacité à décider, convaincre et délivrer avec qualité', 'disc-test'),
-                    __('Leadership crédible par l'action et la rigueur', 'disc-test'),
+                    __('Leadership crédible par l\'action et la rigueur', 'disc-test'),
                     __('Autonomie forte et sens des responsabilités', 'disc-test'),
                 ),
                 'vigilance'  => array(
-                    __('Risque d'exigence excessive sur soi et sur les autres', 'disc-test'),
+                    __('Risque d\'exigence excessive sur soi et sur les autres', 'disc-test'),
                     __('Tendance à manquer de patience envers les profils plus lents', 'disc-test'),
                 ),
                 'advice'     => array(
                     __('Faites de la place aux profils S dans votre équipe pour équilibrer votre rythme.', 'disc-test'),
-                    __('Acceptez que la perfection immédiate n'est pas toujours possible.', 'disc-test'),
+                    __('Acceptez que la perfection immédiate n\'est pas toujours possible.', 'disc-test'),
                 ),
             ),
 
             'DSC' => array(
                 'synthesis'  => __("Votre profil nuancé combine détermination, constance et rigueur. Vous avancez avec ténacité vers vos objectifs, en maintenant des standards élevés sur la durée. Ce profil est souvent associé à une grande crédibilité professionnelle.", 'disc-test'),
                 'strengths'  => array(
-                    __('Persévérance dans l'atteinte d'objectifs ambitieux', 'disc-test'),
+                    __('Persévérance dans l\'atteinte d\'objectifs ambitieux', 'disc-test'),
                     __('Rigueur et fiabilité sur la durée', 'disc-test'),
                     __('Capacité à tenir un cap malgré les obstacles', 'disc-test'),
                 ),
                 'vigilance'  => array(
                     __('Manque de souplesse relationnelle qui peut isoler', 'disc-test'),
-                    __('Tendance à prioriser le résultat sur le bien-être de l'équipe', 'disc-test'),
+                    __('Tendance à prioriser le résultat sur le bien-être de l\'équipe', 'disc-test'),
                 ),
                 'advice'     => array(
                     __('Investissez dans la qualité des relations — elles sont un levier de performance.', 'disc-test'),
-                    __('Accueillez les signaux d'alarme avant qu'ils deviennent des crises.', 'disc-test'),
+                    __('Accueillez les signaux d\'alarme avant qu\'ils deviennent des crises.', 'disc-test'),
                 ),
             ),
 
@@ -710,12 +900,12 @@ class DISC_Renderer {
                     __('Capacité à jouer des rôles différents selon les besoins du groupe', 'disc-test'),
                 ),
                 'vigilance'  => array(
-                    __('Risque de sur-adaptation et de perte d'identité', 'disc-test'),
-                    __('Tendance à ne pas affirmer de cap clair, par souci d'équilibre', 'disc-test'),
+                    __('Risque de sur-adaptation et de perte d\'identité', 'disc-test'),
+                    __('Tendance à ne pas affirmer de cap clair, par souci d\'équilibre', 'disc-test'),
                 ),
                 'advice'     => array(
                     __('Définissez votre propre style de référence pour ne pas toujours vous adapter aux autres.', 'disc-test'),
-                    __('Restez fidèle à vos valeurs profondes — c'est votre ancrage.', 'disc-test'),
+                    __('Restez fidèle à vos valeurs profondes — c\'est votre ancrage.', 'disc-test'),
                 ),
             ),
 
@@ -735,18 +925,41 @@ class DISC_Renderer {
             );
         }
 
+        // Phrase de contextualisation dynamique (1.2) — explique la combinaison des dimensions
+        $dim_context = array(
+            'D' => "l'action directe et la prise de décision",
+            'I' => "la communication et l'influence relationnelle",
+            'S' => "la stabilité et la coopération d'équipe",
+            'C' => "la rigueur et le souci du détail",
+        );
+        if ($profile_type === 'DISC') {
+            $contextualization = "Ce profil équilibré traduit une grande polyvalence comportementale : vous mobilisez l'ensemble des registres DISC selon les situations.";
+        } else {
+            $dims       = str_split($profile_type);
+            $dim_labels = array_map(function($d) use ($dim_context) {
+                return $dim_context[$d] ?? $d;
+            }, $dims);
+            if (count($dim_labels) === 1) {
+                $contextualization = 'Ce profil traduit une orientation marquée vers ' . $dim_labels[0] . '.';
+            } else {
+                $last              = array_pop($dim_labels);
+                $contextualization = 'Ce profil traduit une combinaison de ' . implode(', ', $dim_labels) . ' et ' . $last . '.';
+            }
+        }
+
         return array(
-            'title'          => $profile_title,
-            'synthesis'      => $desc['synthesis'],
-            'strengths'      => $desc['strengths'],
-            'vigilance'      => $desc['vigilance'],
-            'advice'         => $desc['advice'],
-            'contrast'       => $contrast,
-            'contrast_level' => $contrast_info,
+            'title'             => $profile_title,
+            'synthesis'         => $desc['synthesis'],
+            'contextualization' => $contextualization,
+            'strengths'         => $desc['strengths'],
+            'vigilance'         => $desc['vigilance'],
+            'advice'            => $desc['advice'],
+            'contrast'          => $contrast,
+            'contrast_level'    => $contrast_info,
             // Compatibilité avec l'ancien format pour l'email
-            'description'    => $desc['synthesis'],
-            'development'    => $desc['advice'][0] ?? '',
-            'subtitle'       => $contrast_info['label'],
+            'description'       => $desc['synthesis'],
+            'development'       => $desc['advice'][0] ?? '',
+            'subtitle'          => $contrast_info['label'],
         );
     }
 }

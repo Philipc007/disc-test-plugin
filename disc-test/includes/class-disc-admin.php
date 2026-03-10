@@ -458,6 +458,11 @@ class DISC_Admin {
             update_option('disc_tag_prefix', sanitize_key(wp_unslash($_POST['tag_prefix'] ?? 'disc')));
             update_option('disc_email_footer_enabled', isset($_POST['email_footer_enabled']) ? 1 : 0);
             update_option('disc_email_footer_content', wp_kses_post(wp_unslash($_POST['email_footer_content'] ?? '')));
+            update_option('disc_cta_enabled', isset($_POST['cta_enabled']) ? 1 : 0);
+            update_option('disc_cta_title', sanitize_text_field(wp_unslash($_POST['cta_title'] ?? '')));
+            update_option('disc_cta_body', sanitize_textarea_field(wp_unslash($_POST['cta_body'] ?? '')));
+            update_option('disc_cta_button_text', sanitize_text_field(wp_unslash($_POST['cta_button_text'] ?? '')));
+            update_option('disc_cta_button_url', esc_url_raw(wp_unslash($_POST['cta_button_url'] ?? '')));
 
             echo '<div class="notice notice-success is-dismissible"><p>' . __('Paramètres enregistrés.', 'disc-test') . '</p></div>';
         }
@@ -488,6 +493,11 @@ class DISC_Admin {
                                . "Pour exercer ces droits ou vous désinscrire, contactez-nous : {email_admin}\n\n"
                                . "Cet email vous a été envoyé suite à votre participation au test DISC sur {site_name}.";
         $email_footer_content  = get_option('disc_email_footer_content', $email_footer_default);
+        $cta_enabled           = get_option('disc_cta_enabled', 0);
+        $cta_title             = get_option('disc_cta_title', '');
+        $cta_body              = get_option('disc_cta_body', '');
+        $cta_button_text       = get_option('disc_cta_button_text', '');
+        $cta_button_url        = get_option('disc_cta_button_url', '');
         
         ?>
         <div class="wrap">
@@ -563,12 +573,70 @@ class DISC_Admin {
                         </td>
                     </tr>
                 </table>
+
+                <h2 style="margin-top:28px;"><?php _e('Bloc marketing (après résultats)', 'disc-test'); ?></h2>
+                <p><?php _e('Bloc optionnel affiché après le profil DISC, sur la page de résultats et dans l\'email. Idéal pour proposer un accompagnement ou un appel de découverte.', 'disc-test'); ?></p>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php _e('Activer le bloc', 'disc-test'); ?></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="cta_enabled" id="cta_enabled" value="1" <?php checked(1, $cta_enabled); ?>>
+                                <?php _e('Afficher ce bloc après les résultats', 'disc-test'); ?>
+                            </label>
+                        </td>
+                    </tr>
+
+                    <tr id="cta_fields_row" <?php echo $cta_enabled ? '' : 'style="display:none;"'; ?>>
+                        <th scope="row">
+                            <label for="cta_title"><?php _e('Titre', 'disc-test'); ?></label>
+                        </th>
+                        <td>
+                            <input type="text" id="cta_title" name="cta_title" value="<?php echo esc_attr($cta_title); ?>" class="large-text" placeholder="<?php esc_attr_e('Ex : Allez plus loin avec un accompagnement personnalisé', 'disc-test'); ?>">
+                            <p class="description"><?php _e('Titre principal du bloc. Affiché en évidence, sans balisage supplémentaire.', 'disc-test'); ?></p>
+                        </td>
+                    </tr>
+
+                    <tr id="cta_body_row" <?php echo $cta_enabled ? '' : 'style="display:none;"'; ?>>
+                        <th scope="row">
+                            <label for="cta_body"><?php _e('Corps du message', 'disc-test'); ?></label>
+                        </th>
+                        <td>
+                            <textarea id="cta_body" name="cta_body" rows="6" class="large-text" placeholder="<?php esc_attr_e('Votre texte ici...', 'disc-test'); ?>"><?php echo esc_textarea($cta_body); ?></textarea>
+                            <p class="description">
+                                <?php _e('Mini-markdown supporté :', 'disc-test'); ?>
+                                <code># Sous-titre</code> — <?php _e('sous-titre (h4)', 'disc-test'); ?>,
+                                <code>**gras**</code> — <?php _e('texte en gras', 'disc-test'); ?>,
+                                <code>- élément</code> — <?php _e('élément de liste', 'disc-test'); ?>,
+                                <code>[texte](url)</code> — <?php _e('lien', 'disc-test'); ?>.
+                                <?php _e('Ligne vide = nouveau paragraphe.', 'disc-test'); ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr id="cta_button_row" <?php echo $cta_enabled ? '' : 'style="display:none;"'; ?>>
+                        <th scope="row">
+                            <label for="cta_button_text"><?php _e('Bouton d\'action', 'disc-test'); ?></label>
+                        </th>
+                        <td>
+                            <input type="text" id="cta_button_text" name="cta_button_text" value="<?php echo esc_attr($cta_button_text); ?>" class="regular-text" placeholder="<?php esc_attr_e('Ex : Réserver mon appel découverte', 'disc-test'); ?>">
+                            <input type="url" id="cta_button_url" name="cta_button_url" value="<?php echo esc_attr($cta_button_url); ?>" class="large-text" placeholder="https://" style="margin-top:6px;">
+                            <p class="description"><?php _e('Laisser vides pour ne pas afficher de bouton.', 'disc-test'); ?></p>
+                        </td>
+                    </tr>
+                </table>
                 <script>
                 document.getElementById('email_footer_enabled').addEventListener('change', function() {
                     document.getElementById('email_footer_row').style.display = this.checked ? '' : 'none';
                 });
+                document.getElementById('cta_enabled').addEventListener('change', function() {
+                    var show = this.checked ? '' : 'none';
+                    document.getElementById('cta_fields_row').style.display = show;
+                    document.getElementById('cta_body_row').style.display   = show;
+                    document.getElementById('cta_button_row').style.display = show;
+                });
                 </script>
-                
+
                 <p class="submit">
                     <input type="submit" name="disc_save_settings" class="button button-primary" value="<?php _e('Enregistrer les modifications', 'disc-test'); ?>">
                 </p>

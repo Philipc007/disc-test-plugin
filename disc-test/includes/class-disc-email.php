@@ -79,7 +79,15 @@ class DISC_Email {
                     <div class="profile-badge">
                         <div class="profile-type"><?php echo esc_html($profile_type); ?></div>
                         <h2><?php echo esc_html($profile_description['title']); ?></h2>
-                        <p><?php echo esc_html($profile_description['subtitle'] ?? ''); ?> — contraste <?php echo esc_html(isset($profile_description['contrast_level']['label']) ? $profile_description['contrast_level']['label'] : ''); ?></p>
+                        <?php
+                        $contrast_label = isset($profile_description['contrast_level']['label'])     ? $profile_description['contrast_level']['label']       : '';
+                        $contrast_expl  = isset($profile_description['contrast_level']['explanation']) ? $profile_description['contrast_level']['explanation'] : '';
+                        if ($contrast_expl) {
+                            echo '<p style="font-size:13px;color:#555;margin-top:6px;">' . esc_html('Profil ' . $contrast_label . ' — ' . $contrast_expl) . '</p>';
+                        } elseif ($contrast_label) {
+                            echo '<p style="font-size:13px;color:#555;margin-top:6px;">' . esc_html('Profil ' . $contrast_label) . '</p>';
+                        }
+                        ?>
                     </div>
                     
                     <h3>Vos scores DISC (sur 100)</h3>
@@ -108,6 +116,9 @@ class DISC_Email {
 
                     <h3>Votre profil</h3>
                     <p><?php echo esc_html($profile_description['description'] ?? ''); ?></p>
+                    <?php if (!empty($profile_description['contextualization'])): ?>
+                    <p style="font-style:italic;color:#555;margin-top:8px;"><?php echo esc_html($profile_description['contextualization']); ?></p>
+                    <?php endif; ?>
 
                     <?php if (!empty($profile_description['strengths'])): ?>
                     <h3>Vos forces</h3>
@@ -135,6 +146,8 @@ class DISC_Email {
                         <?php endforeach; ?>
                     </ul>
                     <?php endif; ?>
+
+                    <?php echo DISC_Renderer::render_cta_block('email'); ?>
                 </div>
                 <?php
                 // Pied de page légal configurable (activé/désactivé dans les paramètres du plugin)

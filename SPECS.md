@@ -4,8 +4,8 @@
 
 Plugin WordPress pour administrer un test DISC psychométrique comme lead magnet B2B pour dirigeants et managers d'entreprises.
 
-**Version** : 1.3.0
-**Status** : En ligne (o2switch) — passe QA finale effectuée
+**Version** : 1.4.0
+**Status** : En développement — passe 1 (UX psychométrique) + passe 2 (bloc marketing) implémentées
 **Stack** : WordPress 5.8+, PHP 7.4+, MySQL 5.7+, JavaScript ES6, Chart.js 3.9.1, QuickChart.io
 
 ## Architecture
@@ -117,8 +117,11 @@ define('DISC_ENCRYPTION_KEY', 'votre_cle_32_caracteres');
 - `render_test($atts)` - Fonction centrale appelée par shortcode ET bloc
 - `get_profile_description($type, $scores)` - Descriptions des 23 profils + DISC + fallback générique
 - `determine_profile_type($scores)` - Calcul du profil dominant
-- `get_profile_title($type)` - Titre contextualisé (dominant/nuancé/équilibré)
-- `get_contrast_level($contrast)` - Niveau de contraste (4 niveaux)
+- `get_profile_title($type)` - Titre enrichi avec noms complets (ex: "D (Dominance) — I (Influence)")
+- `get_contrast_level($contrast)` - Niveau de contraste (4 niveaux + phrase explicative)
+- `mini_markdown($text, $context)` - Convertit mini-markdown en HTML sécurisé (frontend ou email)
+- `render_cta_block($context)` - Bloc marketing configurable (frontend ou email)
+- `inline_format($text)` — privée — applique **gras** et [liens](url) avec échappement sûr
 
 **Profils supportés** :
 - Simples : D, I, S, C
@@ -127,13 +130,15 @@ define('DISC_ENCRYPTION_KEY', 'votre_cle_32_caracteres');
 - Équilibré : DISC
 - Fallback : première dimension + description générique
 
-**Structure description (6 blocs)** :
-- `title` — Bloc A : titre contextualisé
+**Structure description (retour `get_profile_description`)** :
+- `title` — Bloc A : titre avec noms complets des dimensions (v1.4)
 - `synthesis` — Bloc B : synthèse du profil
+- `contextualization` — phrase de contextualisation dynamique par combinaison (v1.4)
 - `strengths` — Bloc D : forces probables (array)
 - `vigilance` — Bloc E : points de vigilance (array)
 - `advice` — Bloc F : conseils pratiques (array)
-- `contrast_level` — niveau de contraste (label + key)
+- `contrast` — valeur brute (max - min)
+- `contrast_level` — niveau de contraste (label + key + **explanation** v1.4)
 
 **HTML généré** :
 - Écran démarrage avec bénéfices
@@ -173,13 +178,14 @@ do_action('disc_test_completed', $contact_data, $scores, $profile_type);
 
 **Template email** :
 - Header avec gradient
-- Badge profil (type + titre + niveau de contraste)
+- Badge profil (type + titre enrichi + phrase contraste explicative v1.4)
 - Scores en tableau (/100 — scores indépendants)
 - Graphique via QuickChart.io (horizontalBar, Chart.js 2.x, max=100)
-- Synthèse du profil (Bloc B)
+- Synthèse du profil (Bloc B) + phrase de contextualisation (v1.4)
 - Forces probables (Bloc D)
 - Points de vigilance (Bloc E)
 - Axes de développement / conseils (Bloc F)
+- Bloc marketing CTA configurable (v1.4, si activé dans Paramètres)
 - Footer RGPD configurable
 
 #### DISC_Admin
@@ -189,7 +195,7 @@ do_action('disc_test_completed', $contact_data, $scores, $profile_type);
 - **Résultats** : Liste tous les participants avec filtres et renvoi email
 - **Statistiques** : Dashboard avec métriques
 - **Questions** : Visualisation et édition des 14 blocs ipsatifs
-- **Paramètres** : Configuration plugin + section Maintenance (reset questions, reset data)
+- **Paramètres** : Configuration plugin + Bloc marketing CTA (v1.4) + section Maintenance (reset questions, reset data)
 
 **Métriques affichées** :
 - Total tests
@@ -375,13 +381,14 @@ contrast = max(scores) - min(scores)
 Les lettres sont retournées dans l'ordre RÉEL des scores (pas l'ordre canonique D-I-S-C).
 ```
 
-**Niveau de contraste** :
+**Niveau de contraste** (v1.4 — enrichi d'une phrase explicative) :
 ```
-contrast ≤ 14  → équilibré
-contrast ≤ 29  → modérément contrasté
-contrast ≤ 44  → contrasté
-contrast > 44  → très contrasté
+contrast ≤ 14  → équilibré            "Vos 4 dimensions sont proches : vous adaptez naturellement votre style..."
+contrast ≤ 29  → modérément contrasté "Une ou deux dimensions se détachent légèrement..."
+contrast ≤ 44  → contrasté            "Vos dimensions dominantes se distinguent clairement..."
+contrast > 44  → très contrasté       "Une dimension prédomine très fortement..."
 ```
+Retourné dans `contrast_level['explanation']` et affiché en remplacement du brut "(contraste : X pts)".
 
 **Tags CRM** : dimension significative si score ≥ 60 (seuil sur échelle 0–100 indépendante)
 
@@ -686,6 +693,11 @@ Raison : Meilleure délivrabilité emails
 | `disc_tag_prefix` | `disc` | Préfixe des tags CRM |
 | `disc_email_footer_enabled` | `1` | Activer le pied de page légal |
 | `disc_email_footer_content` | Texte RGPD par défaut | Contenu du pied de page email |
+| `disc_cta_enabled` | `0` | Activer le bloc marketing après résultats |
+| `disc_cta_title` | `` | Titre du bloc CTA |
+| `disc_cta_body` | `` | Corps mini-markdown (`# titre`, `**gras**`, `- liste`, `[texte](url)`) |
+| `disc_cta_button_text` | `` | Texte du bouton d'action |
+| `disc_cta_button_url` | `` | URL du bouton d'action |
 
 ## Limitations Connues
 
@@ -706,7 +718,15 @@ Raison : Meilleure délivrabilité emails
 - Session token 64 chars hex, fallbacks email robustes
 - Passe QA finale + ZIP généré
 
-### v1.4 (prochaine)
+### v1.4 ✅ (2026-03-10)
+- Titres de profil avec noms complets des dimensions (D → Dominance, etc.)
+- Phrase de contextualisation dynamique par combinaison de dimensions
+- Explication du niveau de contraste (remplace le brut "contraste : X pts")
+- Bloc marketing configurable (titre + corps mini-markdown + bouton CTA)
+- mini_markdown() : `# titre`, `**gras**`, `- liste`, `[texte](url)`, ligne vide = `<p>`
+- Bloc CTA rendu dans résultats frontend + email (si activé)
+
+### v1.5 (prochaine)
 - Connexion Mautic via webhook
 - Page "Santé du plugin" admin (dernier email, dernier webhook, stats)
 - Log intention webhook avant envoi

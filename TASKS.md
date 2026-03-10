@@ -49,6 +49,16 @@
 - [x] **Vocabulaire "Tendance"** ✅ — email et graphique Chart.js
 - [x] **Graphique axe x max 60** ✅ — meilleure lisibilité scores relatifs
 
+### Développements v1.4 (2026-03-10)
+
+- [x] **Titres enrichis avec noms DISC** ✅ — `get_profile_title()` affiche "D (Dominance) — I (Influence)" etc.
+- [x] **Phrase de contextualisation** ✅ — `contextualization` dynamique dans `get_profile_description()`, affiché frontend + email
+- [x] **Explication du contraste** ✅ — `contrast_level['explanation']` remplace "(contraste : X pts)" sur frontend et email
+- [x] **Bloc marketing configurable** ✅ — 5 options admin (`disc_cta_*`), affiché après résultats si activé
+- [x] **mini_markdown()** ✅ — `# titre`, `**gras**`, `- liste`, `[texte](url)`, ligne vide = `<p>`, sécurisé
+- [x] **render_cta_block()** ✅ — contextes `'frontend'` (CSS classes) et `'email'` (inline styles)
+- [x] **CSS `.disc-cta-block`** ✅ — style sobre, bordure gauche violette, responsive
+
 ### Développements v1.3 (2026-03-10)
 
 - [x] **Scoring +1/-1/0** ✅ — 14 blocs, scores indépendants, normalisation `round(((raw+14)/28)×100)` → 0–100
@@ -726,5 +736,5 @@ Aucun bug connu actuellement - À compléter après tests
 ---
 
 **Dernière mise à jour** : 2026-03-10
-**Status global** : 🟢 v1.3 packagé (ZIP prêt) — Scoring v1.3 ✅ — Email enrichi ✅ — Mautic à connecter
-**Prochaine étape** : Déploiement v1.3 sur o2switch + reset questions en BDD + test webhook Mautic
+**Status global** : 🟢 v1.4 en cours — UX psychométrique ✅ — Bloc marketing ✅ — ZIP à générer
+**Prochaine étape** : Générer ZIP v1.4 + déploiement o2switch + test webhook Mautic
