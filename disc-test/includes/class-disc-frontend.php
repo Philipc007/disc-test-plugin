@@ -353,6 +353,27 @@ class DISC_Frontend {
             ));
         }
         
+        // Intégration Mautic native — isolée, non-bloquante
+        try {
+            DISC_Mautic_Integration::send_contact( array(
+                'email'             => $contact_data['email'],
+                'first_name'        => $contact_data['first_name'],
+                'last_name'         => $contact_data['last_name'],
+                'company'           => $contact_data['company'],
+                'position'          => $contact_data['position'],
+                'profile_type'      => $profile_type,
+                'score_d'           => $scores['D'],
+                'score_i'           => $scores['I'],
+                'score_s'           => $scores['S'],
+                'score_c'           => $scores['C'],
+                'consistency_score' => $consistency_score,
+                'completed_at'      => current_time( 'c' ),
+                'tags'              => self::generate_crm_tags( $profile_type, $scores, $consistency_score ),
+            ) );
+        } catch ( \Exception $e ) {
+            DISC_Database::log_event( 'mautic_error', array( 'message' => $e->getMessage() ), $session_token );
+        }
+
         // Retourne les résultats
         $profile_description = DISC_Renderer::get_profile_description($profile_type, $scores);
         

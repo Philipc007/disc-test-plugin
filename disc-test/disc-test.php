@@ -73,6 +73,7 @@ class DISC_Test_Plugin {
         require_once DISC_TEST_PLUGIN_DIR . 'includes/class-disc-renderer.php';
         require_once DISC_TEST_PLUGIN_DIR . 'includes/class-disc-frontend.php';
         require_once DISC_TEST_PLUGIN_DIR . 'includes/class-disc-email.php';
+        require_once DISC_TEST_PLUGIN_DIR . 'includes/class-disc-mautic.php';
         require_once DISC_TEST_PLUGIN_DIR . 'includes/class-disc-admin.php';
     }
     
