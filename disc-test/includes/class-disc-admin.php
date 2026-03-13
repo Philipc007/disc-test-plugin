@@ -26,6 +26,7 @@ class DISC_Admin {
 	private function __construct() {
 		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
 		add_action( 'admin_init', array( $this, 'handle_export' ) );
+		add_action( 'admin_init', array( $this, 'handle_result_actions' ) );
 		add_action( 'wp_ajax_disc_mautic_test_connection', array( $this, 'ajax_mautic_test_connection' ) );
 	}
 
@@ -90,6 +91,62 @@ class DISC_Admin {
 	}
 
 	/**
+	 * Gère les actions sur les résultats (suppression unitaire, suppression groupée, sauvegarde)
+	 * Exécuté sur admin_init — redirige après traitement pour éviter les doubles soumissions
+	 */
+	public function handle_result_actions() {
+		if ( ! isset( $_GET['page'] ) || $_GET['page'] !== 'disc-test' ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		// ── Suppression unitaire (GET + nonce) ────────────────────────────
+		$action = isset( $_GET['action'] ) ? $_GET['action'] : '';
+
+		if ( $action === 'delete_result' && isset( $_GET['result_id'] ) ) {
+			check_admin_referer( 'disc_delete_result_' . intval( $_GET['result_id'] ) );
+			DISC_Database::delete_result( intval( $_GET['result_id'] ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=disc-test&notice=deleted' ) );
+			exit;
+		}
+
+		// ── Sauvegarde du formulaire d'édition (POST) ─────────────────────
+		if ( isset( $_POST['disc_save_result_nonce'], $_POST['result_id'] ) ) {
+			$result_id = intval( $_POST['result_id'] );
+			check_admin_referer( 'disc_save_result_' . $result_id, 'disc_save_result_nonce' );
+
+			DISC_Database::update_result( $result_id, array(
+				'first_name' => wp_unslash( $_POST['first_name'] ?? '' ),
+				'last_name'  => wp_unslash( $_POST['last_name']  ?? '' ),
+				'email'      => wp_unslash( $_POST['email']      ?? '' ),
+				'company'    => wp_unslash( $_POST['company']    ?? '' ),
+			) );
+
+			wp_safe_redirect( admin_url( 'admin.php?page=disc-test&notice=saved' ) );
+			exit;
+		}
+
+		// ── Suppression groupée (GET ou POST — nonce bulk-disc_results) ───
+		$bulk_action = '';
+		if ( isset( $_REQUEST['action'] ) && $_REQUEST['action'] !== '-1' ) {
+			$bulk_action = $_REQUEST['action'];
+		} elseif ( isset( $_REQUEST['action2'] ) && $_REQUEST['action2'] !== '-1' ) {
+			$bulk_action = $_REQUEST['action2'];
+		}
+
+		if ( $bulk_action === 'bulk_delete' && ! empty( $_REQUEST['result_ids'] ) ) {
+			check_admin_referer( 'bulk-disc_results' );
+			$ids   = array_map( 'intval', (array) $_REQUEST['result_ids'] );
+			$count = DISC_Database::bulk_delete_results( $ids );
+			wp_safe_redirect( admin_url( 'admin.php?page=disc-test&notice=bulk_deleted&count=' . $count ) );
+			exit;
+		}
+	}
+
+	/**
 	 * Ajoute les pages d'administration
 	 */
 	public function add_admin_menu() {
@@ -141,18 +198,21 @@ class DISC_Admin {
 	}
 
 	/**
-	 * Page des résultats
+	 * Page des résultats — liste WP_List_Table + page d'édition
 	 */
 	public function render_results_page() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( __( 'Vous n\'avez pas les permissions nécessaires.', 'disc-test' ) );
 		}
 
-		// Traitement du renvoi d'email
-		if ( isset( $_GET['action'] ) && $_GET['action'] === 'resend_email' && isset( $_GET['result_id'] ) ) {
-			check_admin_referer( 'disc_resend_email_' . intval( $_GET['result_id'] ) );
+		$action    = isset( $_GET['action'] ) ? $_GET['action'] : '';
+		$result_id = isset( $_GET['result_id'] ) ? intval( $_GET['result_id'] ) : 0;
 
-			$result = DISC_Database::get_result_by_id( intval( $_GET['result_id'] ) );
+		// ── Renvoi email (inline, affiche un notice puis continue vers la liste) ──
+		if ( $action === 'resend_email' && $result_id ) {
+			check_admin_referer( 'disc_resend_email_' . $result_id );
+
+			$result = DISC_Database::get_result_by_id( $result_id );
 
 			if ( $result ) {
 				$contact_data = array(
@@ -169,7 +229,7 @@ class DISC_Admin {
 					'C' => $result['score_c'],
 				);
 
-				$sent = DISC_Email::send_results_email( $contact_data, $scores, $result['profile_type'] );
+				$sent          = DISC_Email::send_results_email( $contact_data, $scores, $result['profile_type'] );
 				DISC_Database::log_event( 'email_resent', array( 'result_id' => $result['id'], 'success' => $sent ) );
 
 				$display_email = esc_html( DISC_Security::decrypt_email( $result['email'] ) );
@@ -180,74 +240,123 @@ class DISC_Admin {
 
 				echo '<div class="notice ' . $notice_class . ' is-dismissible"><p>' . $notice_msg . '</p></div>';
 			}
+
+			// Réinitialise l'action pour afficher la liste après le notice
+			$action = '';
 		}
 
-		// Log l'accès admin
+		// ── Page d'édition d'un résultat ──────────────────────────────────
+		if ( $action === 'edit_result' && $result_id ) {
+			$result = DISC_Database::get_result_by_id( $result_id );
+
+			if ( ! $result ) {
+				echo '<div class="notice notice-error"><p>' . __( 'Résultat introuvable.', 'disc-test' ) . '</p></div>';
+			} else {
+				$consistency = floatval( $result['consistency_score'] );
+				$color       = $consistency >= 70 ? 'green' : ( $consistency >= 50 ? 'orange' : 'red' );
+				?>
+				<div class="wrap">
+					<h1>
+						<?php printf(
+							__( 'Modifier le résultat de %s %s', 'disc-test' ),
+							esc_html( $result['first_name'] ),
+							esc_html( $result['last_name'] )
+						); ?>
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=disc-test' ) ); ?>" class="page-title-action">
+							<?php _e( '← Retour à la liste', 'disc-test' ); ?>
+						</a>
+					</h1>
+
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=disc-test' ) ); ?>">
+						<?php wp_nonce_field( 'disc_save_result_' . $result_id, 'disc_save_result_nonce' ); ?>
+						<input type="hidden" name="result_id" value="<?php echo intval( $result_id ); ?>">
+
+						<h2><?php _e( 'Coordonnées (modifiables)', 'disc-test' ); ?></h2>
+						<table class="form-table">
+							<tr>
+								<th scope="row"><label for="first_name"><?php _e( 'Prénom', 'disc-test' ); ?></label></th>
+								<td><input type="text" id="first_name" name="first_name" value="<?php echo esc_attr( $result['first_name'] ); ?>" class="regular-text" required></td>
+							</tr>
+							<tr>
+								<th scope="row"><label for="last_name"><?php _e( 'Nom', 'disc-test' ); ?></label></th>
+								<td><input type="text" id="last_name" name="last_name" value="<?php echo esc_attr( $result['last_name'] ); ?>" class="regular-text" required></td>
+							</tr>
+							<tr>
+								<th scope="row"><label for="edit_email"><?php _e( 'Email', 'disc-test' ); ?></label></th>
+								<td><input type="email" id="edit_email" name="email" value="<?php echo esc_attr( DISC_Security::decrypt_email( $result['email'] ) ); ?>" class="regular-text" required></td>
+							</tr>
+							<tr>
+								<th scope="row"><label for="company"><?php _e( 'Entreprise', 'disc-test' ); ?></label></th>
+								<td><input type="text" id="company" name="company" value="<?php echo esc_attr( $result['company'] ); ?>" class="regular-text"></td>
+							</tr>
+						</table>
+
+						<h2><?php _e( 'Données psychométriques (lecture seule)', 'disc-test' ); ?></h2>
+						<table class="form-table">
+							<tr>
+								<th><?php _e( 'Date du test', 'disc-test' ); ?></th>
+								<td><?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $result['completed_at'] ) ) ); ?></td>
+							</tr>
+							<tr>
+								<th><?php _e( 'Profil DISC', 'disc-test' ); ?></th>
+								<td><strong><?php echo esc_html( $result['profile_type'] ); ?></strong></td>
+							</tr>
+							<tr>
+								<th><?php _e( 'Scores', 'disc-test' ); ?></th>
+								<td>
+									D: <?php echo intval( $result['score_d'] ); ?> &nbsp;
+									I: <?php echo intval( $result['score_i'] ); ?> &nbsp;
+									S: <?php echo intval( $result['score_s'] ); ?> &nbsp;
+									C: <?php echo intval( $result['score_c'] ); ?>
+								</td>
+							</tr>
+							<tr>
+								<th><?php _e( 'Cohérence', 'disc-test' ); ?></th>
+								<td><span style="color:<?php echo esc_attr( $color ); ?>;"><?php echo round( $consistency, 1 ); ?>%</span></td>
+							</tr>
+						</table>
+
+						<p class="submit">
+							<input type="submit" class="button button-primary" value="<?php _e( 'Enregistrer', 'disc-test' ); ?>">
+							<a href="<?php echo esc_url( admin_url( 'admin.php?page=disc-test' ) ); ?>" class="button">
+								<?php _e( 'Annuler', 'disc-test' ); ?>
+							</a>
+						</p>
+					</form>
+				</div>
+				<?php
+				return;
+			}
+		}
+
+		// ── Notices post-action (après redirect) ──────────────────────────
+		$notice = isset( $_GET['notice'] ) ? sanitize_key( $_GET['notice'] ) : '';
+		if ( $notice === 'deleted' ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . __( 'Résultat supprimé.', 'disc-test' ) . '</p></div>';
+		} elseif ( $notice === 'saved' ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . __( 'Résultat mis à jour.', 'disc-test' ) . '</p></div>';
+		} elseif ( $notice === 'bulk_deleted' ) {
+			$count = isset( $_GET['count'] ) ? intval( $_GET['count'] ) : 0;
+			echo '<div class="notice notice-success is-dismissible"><p>' .
+				sprintf( __( '%d résultat(s) supprimé(s).', 'disc-test' ), $count ) .
+				'</p></div>';
+		}
+
+		// ── Log accès admin ────────────────────────────────────────────────
 		DISC_Database::log_event( 'admin_access_results' );
 
-		$results = DISC_Database::get_all_results( 100, 0 );
-
+		// ── Affichage de la liste ──────────────────────────────────────────
+		$list_table = new DISC_Results_List_Table();
+		$list_table->prepare_items();
 		?>
 		<div class="wrap">
 			<h1><?php _e( 'Résultats du Test DISC', 'disc-test' ); ?></h1>
 
-			<table class="wp-list-table widefat fixed striped">
-				<thead>
-					<tr>
-						<th><?php _e( 'Date', 'disc-test' ); ?></th>
-						<th><?php _e( 'Nom', 'disc-test' ); ?></th>
-						<th><?php _e( 'Email', 'disc-test' ); ?></th>
-						<th><?php _e( 'Entreprise', 'disc-test' ); ?></th>
-						<th><?php _e( 'Profil', 'disc-test' ); ?></th>
-						<th><?php _e( 'Scores', 'disc-test' ); ?></th>
-						<th><?php _e( 'Cohérence', 'disc-test' ); ?></th>
-						<th><?php _e( 'Action', 'disc-test' ); ?></th>
-					</tr>
-				</thead>
-				<tbody>
-					<?php if ( empty( $results ) ) : ?>
-						<tr>
-							<td colspan="8"><?php _e( 'Aucun résultat disponible.', 'disc-test' ); ?></td>
-						</tr>
-					<?php else : ?>
-						<?php foreach ( $results as $result ) : ?>
-							<?php
-							$resend_url = wp_nonce_url(
-								admin_url( 'admin.php?page=disc-test&action=resend_email&result_id=' . $result['id'] ),
-								'disc_resend_email_' . $result['id']
-							);
-							$consistency = floatval( $result['consistency_score'] );
-							$color = $consistency >= 70 ? 'green' : ( $consistency >= 50 ? 'orange' : 'red' );
-							?>
-							<tr>
-								<td><?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $result['completed_at'] ) ) ); ?></td>
-								<td><?php echo esc_html( $result['first_name'] . ' ' . $result['last_name'] ); ?></td>
-								<td><?php echo esc_html( DISC_Security::decrypt_email( $result['email'] ) ); ?></td>
-								<td><?php echo esc_html( $result['company'] ); ?></td>
-								<td><strong><?php echo esc_html( $result['profile_type'] ); ?></strong></td>
-								<td>
-									D:<?php echo intval( $result['score_d'] ); ?>
-									I:<?php echo intval( $result['score_i'] ); ?>
-									S:<?php echo intval( $result['score_s'] ); ?>
-									C:<?php echo intval( $result['score_c'] ); ?>
-								</td>
-								<td>
-									<span style="color: <?php echo esc_attr( $color ); ?>;">
-										<?php echo round( $consistency, 1 ); ?>%
-									</span>
-								</td>
-								<td>
-									<a href="<?php echo esc_url( $resend_url ); ?>"
-									   class="button button-small"
-									   onclick="return confirm('<?php echo esc_js( __( 'Renvoyer l\'email de résultats à ', 'disc-test' ) . DISC_Security::decrypt_email( $result['email'] ) . ' ?' ); ?>')">
-										<?php _e( 'Renvoyer email', 'disc-test' ); ?>
-									</a>
-								</td>
-							</tr>
-						<?php endforeach; ?>
-					<?php endif; ?>
-				</tbody>
-			</table>
+			<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
+				<input type="hidden" name="page" value="disc-test">
+				<?php $list_table->search_box( __( 'Rechercher', 'disc-test' ), 'disc-results-search' ); ?>
+				<?php $list_table->display(); ?>
+			</form>
 
 			<p>
 				<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=disc-test&action=export' ), 'disc_export_csv' ) ); ?>" class="button">
@@ -941,6 +1050,154 @@ class DISC_Admin {
 			wp_send_json_success( array( 'message' => $result['message'] ) );
 		} else {
 			wp_send_json_error( array( 'message' => $result['message'] ) );
+		}
+	}
+}
+
+// ── WP_List_Table pour la page Résultats ──────────────────────────────────────
+// Gardée dans ce fichier pour ne pas créer de nouveau fichier.
+// La classe WP_List_Table n'est disponible qu'en contexte admin.
+if ( is_admin() ) {
+	if ( ! class_exists( 'WP_List_Table' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
+	}
+
+	class DISC_Results_List_Table extends WP_List_Table {
+
+		public function __construct() {
+			parent::__construct( array(
+				'singular' => 'disc_result',
+				'plural'   => 'disc_results',
+				'ajax'     => false,
+			) );
+		}
+
+		public function get_columns() {
+			return array(
+				'cb'                => '<input type="checkbox">',
+				'completed_at'      => __( 'Date', 'disc-test' ),
+				'first_name'        => __( 'Prénom', 'disc-test' ),
+				'last_name'         => __( 'Nom', 'disc-test' ),
+				'email'             => __( 'Email', 'disc-test' ),
+				'company'           => __( 'Entreprise', 'disc-test' ),
+				'profile_type'      => __( 'Profil', 'disc-test' ),
+				'scores'            => __( 'Scores', 'disc-test' ),
+				'consistency_score' => __( 'Cohérence', 'disc-test' ),
+			);
+		}
+
+		public function get_sortable_columns() {
+			return array(
+				'completed_at' => array( 'completed_at', true ),  // true = tri par défaut
+				'last_name'    => array( 'last_name', false ),
+				'first_name'   => array( 'first_name', false ),
+				'profile_type' => array( 'profile_type', false ),
+			);
+		}
+
+		public function get_bulk_actions() {
+			return array(
+				'bulk_delete' => __( 'Supprimer la sélection', 'disc-test' ),
+			);
+		}
+
+		public function column_cb( $item ) {
+			return sprintf( '<input type="checkbox" name="result_ids[]" value="%d">', intval( $item['id'] ) );
+		}
+
+		public function column_default( $item, $column_name ) {
+			switch ( $column_name ) {
+
+				case 'completed_at':
+					return esc_html( date_i18n(
+						get_option( 'date_format' ) . ' ' . get_option( 'time_format' ),
+						strtotime( $item['completed_at'] )
+					) );
+
+				case 'first_name':
+					return esc_html( $item['first_name'] );
+
+				case 'last_name':
+					$edit_url   = admin_url( 'admin.php?page=disc-test&action=edit_result&result_id=' . $item['id'] );
+					$delete_url = wp_nonce_url(
+						admin_url( 'admin.php?page=disc-test&action=delete_result&result_id=' . $item['id'] ),
+						'disc_delete_result_' . $item['id']
+					);
+					$resend_url = wp_nonce_url(
+						admin_url( 'admin.php?page=disc-test&action=resend_email&result_id=' . $item['id'] ),
+						'disc_resend_email_' . $item['id']
+					);
+
+					$row_actions = array(
+						'edit'   => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), __( 'Modifier', 'disc-test' ) ),
+						'delete' => sprintf(
+							'<a href="%s" onclick="return confirm(\'%s\')" style="color:#dc2626;">%s</a>',
+							esc_url( $delete_url ),
+							esc_js( __( 'Supprimer définitivement ce résultat ?', 'disc-test' ) ),
+							__( 'Supprimer', 'disc-test' )
+						),
+						'resend' => sprintf(
+							'<a href="%s" onclick="return confirm(\'%s\')">%s</a>',
+							esc_url( $resend_url ),
+							esc_js( __( 'Renvoyer l\'email de résultats ?', 'disc-test' ) ),
+							__( 'Renvoyer email', 'disc-test' )
+						),
+					);
+
+					return esc_html( $item['last_name'] ) . $this->row_actions( $row_actions );
+
+				case 'email':
+					return esc_html( DISC_Security::decrypt_email( $item['email'] ) );
+
+				case 'company':
+					return esc_html( $item['company'] );
+
+				case 'profile_type':
+					return '<strong>' . esc_html( $item['profile_type'] ) . '</strong>';
+
+				case 'scores':
+					return 'D:' . intval( $item['score_d'] ) .
+					       ' I:' . intval( $item['score_i'] ) .
+					       ' S:' . intval( $item['score_s'] ) .
+					       ' C:' . intval( $item['score_c'] );
+
+				case 'consistency_score':
+					$c     = floatval( $item['consistency_score'] );
+					$color = $c >= 70 ? 'green' : ( $c >= 50 ? 'orange' : 'red' );
+					return '<span style="color:' . esc_attr( $color ) . ';">' . round( $c, 1 ) . '%</span>';
+
+				default:
+					return '';
+			}
+		}
+
+		public function prepare_items() {
+			$per_page     = 25;
+			$current_page = $this->get_pagenum();
+			$search       = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : '';
+			$orderby      = isset( $_GET['orderby'] ) ? sanitize_key( $_GET['orderby'] ) : 'completed_at';
+			$order        = isset( $_GET['order'] )   ? sanitize_key( $_GET['order'] )   : 'DESC';
+
+			$total_items = DISC_Database::count_results( $search );
+			$this->items = DISC_Database::get_all_results(
+				$per_page,
+				( $current_page - 1 ) * $per_page,
+				$orderby,
+				$order,
+				$search
+			);
+
+			$this->_column_headers = array(
+				$this->get_columns(),
+				array(),  // colonnes masquées
+				$this->get_sortable_columns(),
+			);
+
+			$this->set_pagination_args( array(
+				'total_items' => $total_items,
+				'per_page'    => $per_page,
+				'total_pages' => ceil( $total_items / $per_page ),
+			) );
 		}
 	}
 }

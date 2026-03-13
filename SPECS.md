@@ -4,8 +4,8 @@
 
 Plugin WordPress pour administrer un test DISC psychométrique comme lead magnet B2B pour dirigeants et managers d'entreprises.
 
-**Version** : 1.4.0
-**Status** : En développement — passe 1 (UX psychométrique) + passe 2 (bloc marketing) implémentées
+**Version** : 1.6.0
+**Status** : En développement — v1.6 (gestion des résultats WP_List_Table) implémentée
 **Stack** : WordPress 5.8+, PHP 7.4+, MySQL 5.7+, JavaScript ES6, Chart.js 3.9.1, QuickChart.io
 
 ## Architecture
@@ -81,7 +81,11 @@ Plugin WordPress pour administrer un test DISC psychométrique comme lead magnet
 - `get_questions()` - Récupère toutes les questions
 - `save_result($data)` - Enregistre un résultat
 - `save_responses($token, $responses)` - Enregistre les réponses détaillées
-- `get_all_results($limit, $offset)` - Liste paginée
+- `get_all_results($limit, $offset, $orderby, $order, $search)` - Liste paginée avec tri et recherche (v1.6)
+- `count_results($search)` - Compte les résultats (optionnellement filtrés) (v1.6)
+- `delete_result($id)` - Supprime un résultat + ses réponses, conserve les audit logs, log `result_deleted` (v1.6)
+- `bulk_delete_results($ids)` - Suppression groupée, boucle sur `delete_result()` (v1.6)
+- `update_result($id, $data)` - Modifie prénom/nom/email/entreprise uniquement, log `result_edited` (v1.6)
 - `get_statistics()` - Métriques globales
 - `log_event($type, $details, $token)` - Audit trail
 
@@ -192,10 +196,21 @@ do_action('disc_test_completed', $contact_data, $scores, $profile_type);
 **Responsabilité** : Interface administration WordPress
 
 **Pages créées** :
-- **Résultats** : Liste tous les participants avec filtres et renvoi email
+- **Résultats** : `DISC_Results_List_Table extends WP_List_Table` — pagination 25/page, tri (date/prénom/nom/profil), recherche (prénom/nom/entreprise), row actions (Modifier/Supprimer/Renvoyer email), bulk action "Supprimer la sélection" (v1.6)
+- **Page Modifier un résultat** : Édition des coordonnées uniquement (prénom/nom/email/entreprise) — données psychométriques en lecture seule — même pattern que la page Modifier question (v1.6)
 - **Statistiques** : Dashboard avec métriques
 - **Questions** : Visualisation et édition des 14 blocs ipsatifs
-- **Paramètres** : Configuration plugin + Bloc marketing CTA (v1.4) + section Maintenance (reset questions, reset data)
+- **Paramètres** : Configuration plugin + Intégration Mautic (v1.5) + Bloc marketing CTA (v1.4) + section Maintenance
+
+**Handlers admin_init** :
+- `handle_export()` — export CSV
+- `handle_result_actions()` — suppression unitaire (GET+nonce), sauvegarde coordonnées (POST), suppression groupée (GET+nonce bulk) — redirige après action (PRG pattern) (v1.6)
+
+**Règles de suppression (v1.6)** :
+- Supprime `wp_disc_results` + `wp_disc_responses` liés
+- Conserve `wp_disc_audit_logs` (traçabilité RGPD)
+- Log `result_deleted` (avec `admin_id`) avant chaque suppression
+- Log `result_edited` (avec `fields_updated`) après chaque modification
 
 **Métriques affichées** :
 - Total tests
@@ -726,11 +741,24 @@ Raison : Meilleure délivrabilité emails
 - mini_markdown() : `# titre`, `**gras**`, `- liste`, `[texte](url)`, ligne vide = `<p>`
 - Bloc CTA rendu dans résultats frontend + email (si activé)
 
-### v1.5 (prochaine)
-- Connexion Mautic via webhook
-- Page "Santé du plugin" admin (dernier email, dernier webhook, stats)
-- Log intention webhook avant envoi
-- Tests E2E Webhook sur n8n/webhook.site
+### v1.5 ✅ (2026-03-12)
+- Intégration Mautic native (API REST, classe `DISC_Mautic_Integration`)
+- Onglet Intégrations dans Paramètres
+- Champs custom Mautic : disc_profile_type, disc_score_d/i/s/c, disc_consistency, disc_completed_at, disc_source
+- Log debug : wp-content/uploads/disc-mautic.log
+
+### v1.6 ✅ (2026-03-13)
+- Page Résultats remplacée par `DISC_Results_List_Table extends WP_List_Table`
+- Pagination 25 résultats/page (remplace LIMIT 100 fixe)
+- Tri par colonne : date, prénom, nom, profil
+- Recherche par nom/prénom/entreprise
+- Row actions au survol : Modifier, Supprimer, Renvoyer email
+- Bulk action : Supprimer la sélection
+- Page Modifier un résultat : coordonnées uniquement (données psychométriques en lecture seule)
+- Suppression en cascade (résultats + réponses) — audit logs conservés (RGPD)
+- Log d'audit `result_deleted` et `result_edited` avec ID admin
+- Validation email côté PHP (`is_email()`) avant mise à jour en base
+- `get_all_results()` et `count_results()` étendus : tri + recherche (rétrocompatibles)
 
 ### v2.0
 - Traductions EN/ES

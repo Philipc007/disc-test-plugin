@@ -3,9 +3,9 @@
  * Plugin Name: Test DISC Lead Magnet
  * Plugin URI: https://votresite.com/disc-test
  * Description: Plugin complet pour administrer un test DISC professionnel comme lead magnet pour dirigeants et managers
- * Version: 1.3.0
- * Author: Votre Nom
- * Author URI: https://votresite.com
+ * Version: 1.6.0
+ * Author: Philippe CHARLES
+ * Author URI: https://libermouv.com
  * License: GPL v2 or later
  * Text Domain: disc-test
  * Domain Path: /languages
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Définition des constantes du plugin
-define('DISC_TEST_VERSION', '1.3.0');
+define('DISC_TEST_VERSION', '1.6.0');
 define('DISC_TEST_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('DISC_TEST_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('DISC_TEST_PLUGIN_FILE', __FILE__);

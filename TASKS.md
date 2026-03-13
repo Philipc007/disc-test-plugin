@@ -49,6 +49,33 @@
 - [x] **Vocabulaire "Tendance"** ✅ — email et graphique Chart.js
 - [x] **Graphique axe x max 60** ✅ — meilleure lisibilité scores relatifs
 
+### Développements v1.6 (2026-03-13)
+
+- [x] **`DISC_Results_List_Table extends WP_List_Table`** ✅ — remplace la table HTML statique, standard WordPress natif
+- [x] **Pagination** ✅ — 25 résultats/page, remplace LIMIT 100 arbitraire
+- [x] **Tri par colonne** ✅ — date, prénom, nom, profil DISC
+- [x] **Recherche** ✅ — par prénom, nom, entreprise (email non cherchable car chiffré)
+- [x] **Row actions au survol** ✅ — Modifier / Supprimer / Renvoyer email
+- [x] **Bulk action "Supprimer la sélection"** ✅ — cases à cocher + menu déroulant standard WP
+- [x] **Page Modifier résultat** ✅ — prénom/nom/email/entreprise éditables, scores en lecture seule, pattern identique à "Modifier question"
+- [x] **Suppression en cascade** ✅ — `wp_disc_results` + `wp_disc_responses`, audit logs conservés
+- [x] **Logs d'audit** ✅ — `result_deleted` (avant suppression) + `result_edited` (champs modifiés) avec `admin_id`
+- [x] **Validation email PHP** ✅ — `is_email()` dans `update_result()` : email invalide ignoré, existant conservé
+- [x] **PRG pattern** ✅ — `handle_result_actions()` sur `admin_init` + redirect → évite double soumission
+- [x] **`DISC_Database::delete_result()`** ✅ — suppression cascade + log
+- [x] **`DISC_Database::bulk_delete_results()`** ✅ — boucle sur `delete_result()`, toutes les suppressions loguées
+- [x] **`DISC_Database::update_result()`** ✅ — 4 champs coordonnées, chiffrement email, validation `is_email()`
+- [x] **`get_all_results()` étendu** ✅ — paramètres `$orderby`, `$order`, `$search` (rétrocompatible)
+- [x] **`count_results()` étendu** ✅ — paramètre `$search` (rétrocompatible)
+
+### Développements v1.5 (2026-03-12)
+
+- [x] **Intégration Mautic native** ✅ — `DISC_Mautic_Integration`, API REST, non-bloquante
+- [x] **Onglet Intégrations admin** ✅ — `?tab=integrations` dans Paramètres
+- [x] **Champs custom Mautic** ✅ — disc_profile_type, disc_score_d/i/s/c, disc_consistency, disc_completed_at, disc_source
+- [x] **Test de connexion Mautic** ✅ — bouton AJAX dans l'onglet Intégrations
+- [x] **Log debug Mautic** ✅ — `wp-content/uploads/disc-mautic.log` (si mode debug activé)
+
 ### Développements v1.4 (2026-03-10)
 
 - [x] **Titres enrichis avec noms DISC** ✅ — `get_profile_title()` affiche "D (Dominance) — I (Influence)" etc.
@@ -735,6 +762,6 @@ Aucun bug connu actuellement - À compléter après tests
 
 ---
 
-**Dernière mise à jour** : 2026-03-10
-**Status global** : 🟢 v1.4 en cours — UX psychométrique ✅ — Bloc marketing ✅ — ZIP à générer
-**Prochaine étape** : Générer ZIP v1.4 + déploiement o2switch + test webhook Mautic
+**Dernière mise à jour** : 2026-03-13
+**Status global** : 🟢 v1.6 implémentée — WP_List_Table résultats ✅ — Mautic ✅ — ZIP à générer
+**Prochaine étape** : Générer ZIP v1.6 + déploiement o2switch + connexion Mautic en prod

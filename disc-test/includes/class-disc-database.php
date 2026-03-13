@@ -294,27 +294,157 @@ class DISC_Database {
     }
     
     /**
-     * Récupère tous les résultats avec pagination
+     * Récupère tous les résultats avec pagination, tri et recherche
+     *
+     * @param int    $limit   Nombre de résultats par page
+     * @param int    $offset  Décalage
+     * @param string $orderby Colonne de tri (completed_at, last_name, first_name, profile_type)
+     * @param string $order   ASC ou DESC
+     * @param string $search  Recherche sur prénom, nom, entreprise
      */
-    public static function get_all_results($limit = 50, $offset = 0) {
+    public static function get_all_results($limit = 50, $offset = 0, $orderby = 'completed_at', $order = 'DESC', $search = '') {
         global $wpdb;
         $table = $wpdb->prefix . 'disc_results';
-        
+
+        $allowed_orderby = array('completed_at', 'last_name', 'first_name', 'profile_type');
+        $orderby = in_array($orderby, $allowed_orderby, true) ? $orderby : 'completed_at';
+        $order   = strtoupper($order) === 'ASC' ? 'ASC' : 'DESC';
+
+        if (!empty($search)) {
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            return $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM $table WHERE first_name LIKE %s OR last_name LIKE %s OR company LIKE %s ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
+                $like, $like, $like, intval($limit), intval($offset)
+            ), ARRAY_A);
+        }
+
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM $table ORDER BY completed_at DESC LIMIT %d OFFSET %d",
-            $limit,
-            $offset
+            "SELECT * FROM $table ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
+            intval($limit),
+            intval($offset)
         ), ARRAY_A);
     }
-    
+
     /**
-     * Compte le nombre total de résultats
+     * Compte le nombre total de résultats (optionnellement filtrés par recherche)
+     *
+     * @param string $search Recherche sur prénom, nom, entreprise
      */
-    public static function count_results() {
+    public static function count_results($search = '') {
         global $wpdb;
         $table = $wpdb->prefix . 'disc_results';
-        
+
+        if (!empty($search)) {
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            return $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM $table WHERE first_name LIKE %s OR last_name LIKE %s OR company LIKE %s",
+                $like, $like, $like
+            ));
+        }
+
         return $wpdb->get_var("SELECT COUNT(*) FROM $table");
+    }
+
+    /**
+     * Supprime un résultat et ses réponses associées.
+     * Les logs d'audit sont conservés (traçabilité RGPD).
+     *
+     * @param int $id ID du résultat
+     * @return int|false Nombre de lignes supprimées ou false en cas d'erreur
+     */
+    public static function delete_result($id) {
+        global $wpdb;
+        $id = intval($id);
+
+        self::log_event('result_deleted', array(
+            'result_id' => $id,
+            'admin_id'  => get_current_user_id(),
+        ));
+
+        $wpdb->delete(
+            $wpdb->prefix . 'disc_responses',
+            array('result_id' => $id),
+            array('%d')
+        );
+
+        return $wpdb->delete(
+            $wpdb->prefix . 'disc_results',
+            array('id' => $id),
+            array('%d')
+        );
+    }
+
+    /**
+     * Suppression groupée de résultats
+     *
+     * @param int[] $ids Tableau d'IDs de résultats
+     * @return int Nombre de résultats effectivement supprimés
+     */
+    public static function bulk_delete_results($ids) {
+        if (empty($ids) || !is_array($ids)) {
+            return 0;
+        }
+        $count = 0;
+        foreach ($ids as $id) {
+            if (self::delete_result(intval($id)) !== false) {
+                $count++;
+            }
+        }
+        return $count;
+    }
+
+    /**
+     * Met à jour les coordonnées d'un résultat (prénom, nom, email, entreprise uniquement).
+     * Les données psychométriques ne sont jamais modifiées ici.
+     *
+     * @param int   $id   ID du résultat
+     * @param array $data Tableau avec les clés first_name, last_name, email, company
+     * @return int|false Nombre de lignes modifiées ou false en cas d'erreur
+     */
+    public static function update_result($id, $data) {
+        global $wpdb;
+        $id = intval($id);
+
+        $update  = array();
+        $formats = array();
+
+        if (isset($data['first_name'])) {
+            $update['first_name'] = sanitize_text_field($data['first_name']);
+            $formats[]            = '%s';
+        }
+        if (isset($data['last_name'])) {
+            $update['last_name'] = sanitize_text_field($data['last_name']);
+            $formats[]           = '%s';
+        }
+        if (isset($data['email'])) {
+            $clean_email = sanitize_email($data['email']);
+            if (!empty($clean_email) && is_email($clean_email)) {
+                $update['email'] = DISC_Security::encrypt_email($clean_email);
+                $formats[]       = '%s';
+            }
+        }
+        if (isset($data['company'])) {
+            $update['company'] = sanitize_text_field($data['company']);
+            $formats[]         = '%s';
+        }
+
+        if (empty($update)) {
+            return false;
+        }
+
+        self::log_event('result_edited', array(
+            'result_id'      => $id,
+            'admin_id'       => get_current_user_id(),
+            'fields_updated' => array_keys($update),
+        ));
+
+        return $wpdb->update(
+            $wpdb->prefix . 'disc_results',
+            $update,
+            array('id' => $id),
+            $formats,
+            array('%d')
+        );
     }
     
     /**

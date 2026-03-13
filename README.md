@@ -5,8 +5,8 @@
 [![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-blue.svg)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)](https://www.php.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v2-green.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Version](https://img.shields.io/badge/Version-1.4-blue.svg)]()
-[![Status](https://img.shields.io/badge/Status-v1.4%20UX%20%2B%20bloc%20marketing-green.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.6.0-blue.svg)]()
+[![Status](https://img.shields.io/badge/Status-v1.6%20gestion%20résultats-green.svg)]()
 
 ## 📋 Table des Matières
 
@@ -63,17 +63,19 @@ Ce plugin WordPress permet d'administrer un test DISC complet (14 blocs ipsatifs
 - ✅ **Avertissement utilisateur** : Message si score < 60%
 
 ### 📊 Administration
+- ✅ **Liste résultats** : `WP_List_Table` standard WP — pagination 25/page, tri, recherche, row actions
+- ✅ **Modifier un résultat** : Coordonnées éditables, données psychométriques en lecture seule (v1.6)
+- ✅ **Supprimer un résultat** : Suppression individuelle ou groupée avec cascade + audit log (v1.6)
 - ✅ **Dashboard statistiques** : Tests totaux, 30 jours, distribution profils
-- ✅ **Liste résultats** : Tous les participants avec filtres et recherche
 - ✅ **Gestion questions** : Visualisation et édition des 14 blocs + reset admin
-- ✅ **Export CSV** : Téléchargement données (à finaliser)
-- ✅ **Paramètres** : Configuration email, webhook CRM, clé encryption
+- ✅ **Export CSV** : Téléchargement données (BOM UTF-8, séparateur `;`)
+- ✅ **Paramètres** : Configuration email, webhook CRM, clé encryption, bloc marketing
 
 ### 🔌 Intégrations
 - ✅ **Hook WordPress** : `do_action('disc_test_completed', ...)` pour Bit Integrations et code custom
 - ✅ **Webhook HTTP** : POST JSON non-bloquant avec payload complet (contact, profil, scores, tags, session)
 - ✅ **Tags CRM auto** : préfixe configurable, seuil 60/100 (scores indépendants)
-- ⏳ **Mautic** : connexion webhook en cours de test
+- ✅ **Mautic** : intégration native API REST (v1.5) — champs custom DISC, log debug
 - ⏳ **PDF** : Génération rapport téléchargeable (roadmap)
 
 ### 🧩 Compatibilité
@@ -156,7 +158,7 @@ Créez une nouvelle page et ajoutez :
 ### Pour les administrateurs
 
 #### Voir les résultats
-**Test DISC > Résultats** : Liste de tous les participants avec profils et scores
+**Test DISC > Résultats** : Liste paginée avec recherche, tri, actions individuelles (Modifier / Supprimer / Renvoyer email) et suppression groupée
 
 #### Consulter les statistiques
 **Test DISC > Statistiques** : Dashboard avec métriques clés et graphiques
@@ -307,11 +309,19 @@ Consultez [TASKS.md](TASKS.md) pour voir les tâches prioritaires.
 - [x] mini_markdown() : `# titre`, `**gras**`, `- liste`, `[texte](url)`, `<p>`
 - [x] Bloc CTA rendu dans résultats frontend ET dans l'email si activé
 
-### Version 1.5 (prochaine)
-- [ ] Connexion Mautic via webhook
-- [ ] Page "Santé du plugin" admin
-- [ ] Log intention webhook
-- [ ] Tests E2E Webhook
+### Version 1.5 ✅ (2026-03-12)
+- [x] Intégration Mautic native (API REST, classe `DISC_Mautic_Integration`)
+- [x] Onglet Intégrations dans Paramètres
+- [x] Champs custom Mautic : disc_profile_type, disc_score_*, disc_consistency, disc_completed_at, disc_source
+- [x] Test de connexion Mautic (bouton AJAX), log debug
+
+### Version 1.6 ✅ (2026-03-13)
+- [x] Page Résultats : `WP_List_Table` standard WP (pagination, tri, recherche)
+- [x] Row actions au survol : Modifier / Supprimer / Renvoyer email
+- [x] Bulk action : Supprimer la sélection (cases à cocher)
+- [x] Page Modifier un résultat : coordonnées uniquement, scores en lecture seule
+- [x] Suppression en cascade (résultats + réponses), audit logs conservés (RGPD)
+- [x] Logs d'audit `result_deleted` et `result_edited` avec ID admin
 
 ### Version 2.0 (roadmap)
 - [ ] Traductions EN/ES
